@@ -8,7 +8,7 @@ import sys
 
 
 client = discord.Client()
-tokens=open('token.txt','r')
+tokens=open('tokens.txt','r')
 discord_token = tokens.read()
 yt_key = tokens.read()
 tokens.close()
