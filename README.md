@@ -1,9 +1,9 @@
-***For use:***  
+*For use:*  
   
 1. Clone git repository  
-2. You will need your own discord and youtube tokens to use this bot, so register the bot as a discord developer and acquire a youtube token at these locations:  
+2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube token at these locations:  
 Discord Developer: https://discordapp.com/developers  
-Youtube Developer: https://console.developers.google.com  
+Google Developer: https://console.developers.google.com  
 3. Run (requires python3 & pip) for setup:  
   
     $ sh setup.sh  
