@@ -11,6 +11,9 @@ import sys
 discord_token=None
 youtube_token=None
 
+# the discord client
+client = discord.Client()
+
 # the text file that the tokens are stored in
 tokensfile = "tokens.txt"
 
@@ -38,6 +41,9 @@ downloading = []
 # maximum number of commands allowed
 command_limit = 50
 
+# PLACEHOLDER UNTIL MULTIPROCESSING DOWNLOADING IS WORKING
+video_limit = 1000 #in minutes
+
 
 # sets up both discord_token and youtube_token by reading them from filename
 def setup_tokens(filename):
@@ -46,6 +52,7 @@ def setup_tokens(filename):
     discord_token = tokens.readline().rstrip()
     youtube_token = tokens.readline().rstrip()
     tokens.close()
+    return
 
 # builds a list of audio commands from existing files already created
 def build_commands():
@@ -58,20 +65,21 @@ def build_commands():
 
 # setup the master list of all callable commands
 def setup_commands():
+    global audio_commands, commands
     audio_commands = build_commands()
     commands = audio_commands + other_commands
+    return
 
 # todo list: add asynchronous downloading so the bot doesnt crash, add being able to quit in the middle of playing
 # duration of video has to be greater than 5 seconds
-
-#@client.event
+@client.event
 async def on_ready():
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
     print('------')
 
-#@client.event
+@client.event
 async def on_message(message):
     if message.author.bot:
         global delete_msgs 
@@ -80,13 +88,13 @@ async def on_message(message):
         return
     elif message.content.lower().startswith(command_prefix):
         global commands
-        global voice_commands
+        global audio_commands
         author_mention = message.author.mention
         command = message.content[5:]
         if command.startswith('create '):
             msg_split = message.content.split(" ")
             if len(msg_split) != 6:
-                error_msg = 'That is not the correct \"create\" voice command formatting! ' + author_mention
+                error_msg = 'That is not the correct \"create\" audio command formatting! ' + author_mention
                 await check_send_msg(message, error_msg)
                 return
             await create_command(message, msg_split[2], msg_split[3], msg_split[4], msg_split[5])
@@ -97,21 +105,21 @@ async def on_message(message):
                 error_msg = 'That is not the correct \"remove\" command formatting! ' + author_mention
                 await check_send_msg(message, error_msg)
                 return
-            voice_command = msg_split[2]
-            if voice_command not in voice_commands:
-                error_msg = 'That voice command does not exist! ' + author_mention
+            audio_command = msg_split[2]
+            if audio_command not in audio_commands:
+                error_msg = 'That audio command does not exist! ' + author_mention
                 await check_send_msg(message, error_msg)
                 return
-            elif remove_command(voice_command):
-                update = 'The ' + command_prefix + voice_command + ' voice command has been deleted. ' + author_mention
+            elif remove_command(audio_command):
+                update = 'The ' + command_prefix + audio_command + ' audio command has been deleted. ' + author_mention
                 await check_send_msg(message, update)
-                voice_commands.remove(voice_command)
-                commands.remove(voice_command)
+                audio_commands.remove(audio_command)
+                commands.remove(audio_command)
                 if delete_msgs:
                     await delete_command(message)
                 return
             else:
-                error_msg = 'The requested voice command\'s file could not be found!' + author_mention
+                error_msg = 'The requested audio command\'s file could not be found!' + author_mention
                 await check_send_msg(message, error_msg)
                 return
         elif command.startswith('copy '):
@@ -122,8 +130,8 @@ async def on_message(message):
                 return
             await copy_command(message, msg_split[2])
             return
-        elif command == 'listvoice':
-            msg = list_voice_commands(author_mention)
+        elif command == 'listaudio':
+            msg = list_audio_commands(author_mention)
             await check_send_msg(message, msg)
             if delete_msgs:
                 await delete_command(message)
@@ -144,8 +152,8 @@ async def on_message(message):
             error_msg = 'That is not a valid command! ' + author_mention
             await check_send_msg(message, error_msg)
             return
-        elif message.author.voice_channel is None:
-            error_msg = 'You (' + author_mention + ') need to be in a voice channel to use that command!'
+        elif message.author.audio_channel is None:
+            error_msg = 'You (' + author_mention + ') need to be in a audio channel to use that command!'
             await check_send_msg(message, error_msg)
             return
         await execute(message)
@@ -153,82 +161,81 @@ async def on_message(message):
             await delete_command(message)
     return
 
-def list_voice_commands(author):
-    result = author + ' Here is a list of voice commands: '
-    if len(voice_commands) > 0:
-        for command in voice_commands:
+def list_audio_commands(author):
+    result = author + ' Here is a list of audio commands: '
+    if len(audio_commands) > 0:
+        for command in audio_commands:
             result += command + ', '
         result += ' and random.'
     else:
-        result += 'There are no voice commands yet!'
+        result += 'There are no audio commands yet!'
     return result
 
-def remove_command(voice_command):
-    file_name = file_prefix + voice_command + file_suffix
+def remove_command(audio_command):
+    file_name = file_prefix + audio_command + file_suffix
     if file_name in os.listdir(os.getcwd()):
         os.remove(file_name)
         return True
     return False
 
 async def execute(message):
-    voice_channel = message.author.voice_channel
-    me_as_member = message.channel.server.me
-    if voice_channel.permissions_for(me_as_member).speak:
+    audio_channel = message.author.voice_channel
+    me_as_member = message.channel.guild.me
+    if audio_channel.permissions_for(me_as_member).speak:
         command = message.content[5:]
         file = get_sound(command)
         if file != 'error':
-            voice = await client.join_voice_channel(voice_channel)
-            player = voice.create_ffmpeg_player(file)
-            player.start()
+            audioplayer = await audio_channel.connect()
+            audioplayer.play(discord.FFmpegPCMAudio(file), after=lambda e: print('done', e))
             while True:
-                if not player.is_playing():
-                    await voice.disconnect()
+                if not audioplayer.is_playing():
+                    await audioplayer.disconnect()
                     return
         return
     author_mention = message.author.mention
     self_mention = client.user.mention
-    error_msg = self_mention + ' cannot speak in your voice channel! ' + author_mention
+    error_msg = self_mention + ' cannot speak in your audio channel! ' + author_mention
     await check_send_msg(message, error_msg)
     return
 
 def get_sound(command):
     if command == 'random':
-        result = file_prefix + random.choice(voice_commands) + file_suffix
+        result = file_prefix + random.choice(audio_commands) + file_suffix
         return result
-    elif command in voice_commands:
+    elif command in audio_commands:
         result = file_prefix + command + file_suffix
     else: 
         result = 'error'
     return result
 
 async def send_help(message):
-    me_as_member = message.channel.server.me
+    me_as_member = message.channel.guild.me
     author_mention = message.author.mention
     self_mention = client.user.mention
     msg = author_mention + ' Issue a command by typing \"' + command_prefix + ' \" followed by the command to execute it.\n'
     msg += 'Use the \"delete\" command " to toggle deleting valid issued commands.\n'
     msg += 'Mass remove valid and invalid commands made to ' + self_mention + ' and messages sent by ' + self_mention + ' (up to 500 messages back) with the \"clear\" command.\n'
-    msg += list_voice_commands('') + '\n'
-    msg += 'You must be in a voice channel to use a voice command.\n'
-    msg += 'Create a voice command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
+    msg += list_audio_commands('') + '\n'
+    msg += 'You must be in a audio channel to use a audio command.\n'
+    msg += 'Create a audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
     msg += 'Turn your own sound file into a command using the \"copy\" command followed by \" <CommandName>\" and uploading the single sound file attached to the message.'
     msg += 'Uploaded sound files can be no longer than 20 seconds.\n'
-    msg += 'Remove a voice command by using the \"remove \" command followed by the command name.\n'
-    msg += 'To list the voice commands available, use the \"listvoice\" command.\n'
+    msg += 'Remove a audio command by using the \"remove \" command followed by the command name.\n'
+    msg += 'To list the audio commands available, use the \"listaudio\" command.\n'
     msg += 'Finally, to resend this message use the \"help\" command.'
     await check_send_msg(message, msg)
     return
 
 async def clear(message):
     deleted = 0
-    me_as_member = message.channel.server.me
+    me_as_member = message.channel.guild.me
     if message.channel.permissions_for(me_as_member).manage_messages:
-        deleted = await client.purge_from(message.channel, limit=500, check=clear_conditions)
+        deleted = await message.channel.purge(message.channel, limit=500, check=clear_conditions)
     else:
         self_mention = client.user.mention
         error_msg = self_mention + ' does not have permission to remove messages! ' + author_mention
         await check_send_msg(message, error_msg)
-    await client.send_message(message.channel, 'Deleted {} message(s).'.format(len(deleted)))
+    await message.channel.send('Deleted {} message(s).'.format(len(deleted)))
     return
 
 def clear_conditions(message):
@@ -236,9 +243,9 @@ def clear_conditions(message):
     return message.author == client.user or msg.startswith(command_prefix) #and msg[5:] in commands
 
 async def delete_command(message):
-    me_as_member = message.channel.server.me
+    me_as_member = message.channel.guild.me
     if message.channel.permissions_for(me_as_member).manage_messages:
-        await client.delete_message(message)
+        await message.delete()
     else:
         self_mention = client.user.mention
         error_msg = self_mention + ' does not have permission to remove messages! ' + author_mention
@@ -258,7 +265,7 @@ async def send_delete_update(message):
 
 async def copy_command(message, command_name):
     if command_name in commands:
-        error_msg = 'That command is already defined! If it is a voice command, please delete that voice command first! ' + author_mention
+        error_msg = 'That command is already defined! If it is a audio command, please delete that audio command first! ' + author_mention
         await check_send_msg(message, error_msg)
         return
     elif len(commands) > command_limit:
@@ -274,9 +281,9 @@ async def copy_command(message, command_name):
             await check_send_msg(message, error_msg)
             return
         file_name = file_prefix + command_name + file_suffix
-        audio.export(file_name, format=formatting)
-        voice_commands.append(command_name)
-        voice_commands.sort()
+        audio.export(file_name, format=file_suffix[1:])
+        audio_commands.append(command_name)
+        audio_commands.sort()
         os.remove(message.attachments[0].filename)
     return
 
@@ -284,7 +291,7 @@ async def create_command(message, url, command_name, start_time, duration):
     streams = pafy.new(url)
     author_mention = message.author.mention
     if command_name in commands:
-        error_msg = 'That command is already defined! If it is a voice command, please delete that voice command first! ' + author_mention
+        error_msg = 'That command is already defined! If it is a audio command, please delete that audio command first! ' + author_mention
         await check_send_msg(message, error_msg)
         return
     if download_preconditions(streams) == 1:
@@ -359,10 +366,10 @@ async def trim_audio(message, title, length, start_time, duration, command_name)
     file_name = file_prefix + command_name + file_suffix
     final_audio.export(file_name, format=formatting)
     os.remove(title)
-    voice_commands.append(command_name)
-    voice_commands.sort()
+    audio_commands.append(command_name)
+    audio_commands.sort()
     commands.append(command_name)
-    voice_commands.sort()
+    audio_commands.sort()
     author_mention = message.author.mention
     update = author_mention + ' trimming complete! ' + command_prefix + command_name + ' is now ready to be used!'
     await check_send_msg(message, update)
@@ -377,16 +384,15 @@ def download_preconditions(streams):
     return 0
 
 async def check_send_msg(message, message_content):
-    me_as_member = message.channel.server.me
+    me_as_member = message.channel.guild.me
     if message.channel.permissions_for(me_as_member).send_messages:
-        await client.send_message(message.channel, message_content)
+        await message.channel.send(message_content)
     return
 
 # main function
 def main():
     setup_tokens(tokensfile)
     setup_commands()
-    client = discord.Client()
     pafy.set_api_key(youtube_token)
     client.run(discord_token)
 
