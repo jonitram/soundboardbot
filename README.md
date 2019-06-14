@@ -1,4 +1,4 @@
-*For use:*  
+**For use:**  
   
 1. Clone git repository  
 2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube token at these locations:  
