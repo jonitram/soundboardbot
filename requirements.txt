@@ -1,4 +1,5 @@
-discord
 asyncio
+discord
+youtube_dl
 pafy
 pydub

@@ -2,6 +2,7 @@ import discord
 import asyncio
 import pafy
 from pydub import AudioSegment
+import multiprocessing
 import random
 import os
 import sys
@@ -40,10 +41,11 @@ command_limit = 50
 
 # sets up both discord_token and youtube_token by reading them from filename
 def setup_tokens(filename):
+    global discord_token, youtube_token
     tokens = open(filename, "r")
-    discord_token = tokens.readline()
-    youtube_token = tokens.readline()
-    token.close()
+    discord_token = tokens.readline().rstrip()
+    youtube_token = tokens.readline().rstrip()
+    tokens.close()
 
 # builds a list of audio commands from existing files already created
 def build_commands():
@@ -62,14 +64,14 @@ def setup_commands():
 # todo list: add asynchronous downloading so the bot doesnt crash, add being able to quit in the middle of playing
 # duration of video has to be greater than 5 seconds
 
-@client.event
+#@client.event
 async def on_ready():
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
     print('------')
 
-@client.event
+#@client.event
 async def on_message(message):
     if message.author.bot:
         global delete_msgs 
