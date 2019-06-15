@@ -29,7 +29,7 @@ file_suffix = '.mp3'
 # audio commands
 audio_commands = []
 # other commands sorted in alphabetical order
-other_commands = ['cleanup','clear','create','downloads','help','listaudio','random','remove']
+other_commands = ['cleanup','clear','create','downloads','help','listaudio','stop','random','remove']
 # all commands
 commands = []
 
@@ -38,7 +38,7 @@ cleanup = False
 
 # create preconditions
 # max creates sound duration limit for time constraint purposes (in seconds)
-duration_limit = 20
+duration_limit = 30
 # list of commands that are currently being created
 # <logic>: basically check for the existence of a file in the cwd and if it exists
 # then the command can be removed from this list
@@ -51,7 +51,10 @@ finished = mpmanager.list()
 command_limit = 100
 
 # current audio player
-currently_playing_audio_task = None
+audio_task = None
+# finished_checker -> create async task to run in background
+# that loops checking len(finished) for > 0 and then running the update
+# when it finishes and then killing itself
 
 # initialization stuff
 # sets up both discord_token and youtube_token by reading them from filename
@@ -147,6 +150,9 @@ async def filter_message(message):
     elif parameters[0] == 'downloads':
         await send_downloading(message)
         return
+    elif parameters[0] == 'stop':
+        await stop_command(message)
+        return
     elif command not in commands:
         error_message = author_mention + ' That is not a valid command!'
         await check_send_message(message, error_message)
@@ -158,6 +164,16 @@ async def filter_message(message):
     else:
         await execute_audio_command(message)
         return
+
+async def stop_command(message):
+    global audio_task
+    if audio_task != None:
+        audio_task.cancel()
+        # send message about stopping thing
+    # send message about not running
+    # else:
+    audio_task = None
+    return
 
 async def clear(message):
     deleted = 0
@@ -245,26 +261,36 @@ def list_audio_commands():
     return result
 
 async def execute_audio_command(message):
-    global currently_playing_audio_task
+    global audio_task
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
         command = message.content[5:]
         file = get_sound(command)
-        # can really be any of the non-audio commands
         if file != None:
-            currently_playing_audio_task = asyncio.ensure_future(play_audio_command(message, audio_channel, file))
+            if audio_task == None:
+                audio_player = await audio_channel.connect()
+                audio_task = audio_player.loop.create_task(play_audio_command(audio_player, file))
+                audio_player.loop.create_task(disconnect_from_audio(audio_player))
         # audio file couldn't be found
         # else: print out error saying audio file not found
+        return
     author_mention = message.author.mention
     self_mention = client.user.mention
     error_message = author_mention + ' ' + self_mention + ' cannot speak in your audio channel!'
     await check_send_message(message, error_message)
     return
 
-async def play_audio_command(message, audio_channel, file):
-    audio_player = await audio_channel.connect()
+async def play_audio_command(audio_player, file):
     audio_player.play(discord.FFmpegPCMAudio(file), after=lambda e: print('finished audio', e))
+    return
+
+async def disconnect_from_audio(audio_player):
+    global audio_task
+    while(not audio_task.done()):
+        pass
+    await audio_player.disconnect()
+    audio_task = None
     return
 
 def get_sound(command):
