@@ -9,12 +9,8 @@ import sys
 
 
 # TODO:
-# AUTOMATIC UPDATING AFTER DOWNLOADS FINISH 
-# (ADD A TASK THAT GETS ADDED TO THE BACKGROUND THAT SPAM CHECKS FOR FINISHED)
-# (1 FOR EVERY DOWNLOAD)
-# could also use exitcodes w/ multiprocessing
-# IMPLEMENTING STOP - DONE!!!
-# (WRAP EXECUTE AUDIO_COMMAND IN A TASK, CANCEL IT AND DISCONNECT FROM VOICE_CHANNEL THROUGH AUDIO_PLAYER)
+# REFACTOR CODE BASE WITH ONLY ONE DOWNLOAD AT A TIME
+# FILL IN STATUS UPDATE MESSAGES
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # test precondition checks for commands
 
@@ -106,20 +102,6 @@ async def on_message(message):
         await filter_message(message)
         if cleanup:
             await delete_message(message)
-    # check if any background downloads have finished
-    # this needs to get moved to its own background task
-    # spams the check in a while true loop with a return in the while true
-    # if len(finished) > 0:
-    #     result = 'These commands have finished downloading: '
-    #     for i in range(len(finished)):
-    #         result += finished[i] + ' '
-    #         downloading.remove(finished[i])
-    #         audio_commands.append(finished[i])
-    #         audio_commands.sort()
-    #         commands.append(finished[i])
-    #         commands.sort()
-    #     finished[:] = []
-    #     await check_send_message(message, result)
     return  
 
 async def filter_message(message):
@@ -133,7 +115,7 @@ async def filter_message(message):
             await check_send_message(message, error_message)
             return
         else:
-            await create_command(message, parameters[1], parameters[2], parameters[3], parameters[4])
+            asyncio.create_task(create_command(message, parameters[1], parameters[2], parameters[3], parameters[4]))
             return
     elif parameters[0] == 'remove':
         if len(parameters) != 2:
@@ -165,23 +147,19 @@ async def filter_message(message):
         error_message = author_mention + ' That is not a valid command!'
         await check_send_message(message, error_message)
         return
-    elif message.author.voice.channel is None:
+    elif message.author.voice is None:
         error_message = author_mention + ' You need to be in a audio channel to use that command!'
         await check_send_message(message, error_message)
         return
     else:
-        # if audio_player != None and not audio_player.is_playing():
-        #     audio_player = None
         if audio_task != None and audio_task.done():
             audio_task = None
         if audio_task == None:
             audio_task = asyncio.create_task(execute_audio_command(message))
-
         # spit out error about already performing an audio command    
         # else:
         return
 
-# this needs to also disconnect through audio_player
 async def stop_command(message):
     global audio_task, audio_player
     if audio_task != None:
