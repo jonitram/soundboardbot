@@ -13,7 +13,7 @@ import sys
 # (ADD A TASK THAT GETS ADDED TO THE BACKGROUND THAT SPAM CHECKS FOR FINISHED)
 # (1 FOR EVERY DOWNLOAD)
 # could also use exitcodes w/ multiprocessing
-# IMPLEMENTING STOP
+# IMPLEMENTING STOP - DONE!!!
 # (WRAP EXECUTE AUDIO_COMMAND IN A TASK, CANCEL IT AND DISCONNECT FROM VOICE_CHANNEL THROUGH AUDIO_PLAYER)
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # test precondition checks for commands
@@ -40,7 +40,7 @@ file_suffix = '.mp3'
 # audio commands
 audio_commands = []
 # other commands sorted in alphabetical order
-other_commands = ['cleanup','clear','create','downloads','help','listaudio','stop','random','remove']
+other_commands = ['cleanup','clear','create','downloading','help','listaudio','stop','random','remove']
 # all commands
 commands = []
 
@@ -62,7 +62,9 @@ finished = mpmanager.list()
 command_limit = 100
 
 # current audio player for disconnecting through stop
-# audio_task = None
+audio_player = None
+# current audio task for cancelling throuhg stop
+audio_task = None
 
 # initialization stuff
 # sets up both discord_token and youtube_token by reading them from filename
@@ -121,6 +123,7 @@ async def on_message(message):
     return  
 
 async def filter_message(message):
+    global audio_task, audio_player
     author_mention = message.author.mention
     command = message.content[5:]
     parameters = command.split(' ')
@@ -152,7 +155,7 @@ async def filter_message(message):
     elif parameters[0] == 'help':
         await send_help(message)
         return
-    elif parameters[0] == 'downloads':
+    elif parameters[0] == 'downloading':
         await send_downloading(message)
         return
     elif parameters[0] == 'stop':
@@ -167,17 +170,27 @@ async def filter_message(message):
         await check_send_message(message, error_message)
         return
     else:
-        await execute_audio_command(message)
+        # if audio_player != None and not audio_player.is_playing():
+        #     audio_player = None
+        if audio_task != None and audio_task.done():
+            audio_task = None
+        if audio_task == None:
+            audio_task = asyncio.create_task(execute_audio_command(message))
+
+        # spit out error about already performing an audio command    
+        # else:
         return
 
 # this needs to also disconnect through audio_player
 async def stop_command(message):
-    global audio_task
+    global audio_task, audio_player
     if audio_task != None:
         audio_task.cancel()
         # send message about stopping thing
     # send message about not running
     # else:
+    await audio_player.disconnect()
+    audio_player = None
     audio_task = None
     return
 
@@ -267,6 +280,7 @@ def list_audio_commands():
     return result
 
 async def execute_audio_command(message):
+    global audio_player
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
@@ -279,6 +293,7 @@ async def execute_audio_command(message):
                 await asyncio.sleep(1)
             audio_player.stop()
             await audio_player.disconnect()
+            audio_player = None
         # audio file couldn't be found
         # else: print out error saying audio file not found
         return
@@ -307,7 +322,7 @@ async def send_help(message):
     help_message += list_audio_commands() + '\n'
     help_message += 'You must be in an audio channel to use a audio command.\n'
     help_message += 'Create a audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
-    help_message += 'Use the \"downloads\" command to list all of the commands currently downloading.\n'
+    help_message += 'Use the \"downloading\" command to list all of the commands currently downloading.\n'
     # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by \" <CommandName>\" and uploading the single sound file attached to the message.'
     # help_message += 'Uploaded sound files can be no longer than 20 seconds.\n'
     help_message += 'Remove a audio command by using the \"remove \" command followed by the command name.\n'
