@@ -7,6 +7,16 @@ import random
 import os
 import sys
 
+
+# TODO:
+# AUTOMATIC UPDATING AFTER DOWNLOADS FINISH 
+# (ADD A TASK THAT GETS ADDED TO THE BACKGROUND THAT SPAM CHECKS FOR FINISHED)
+# (1 FOR EVERY DOWNLOAD)
+# IMPLEMENTING STOP
+# (WRAP EXECUTE AUDIO_COMMAND IN A TASK, CANCEL IT AND DISCONNECT FROM VOICE_CHANNEL THROUGH AUDIO_PLAYER)
+# duration of video has to be greater than 5 seconds <- TEST THIS
+# test precondition checks for commands
+
 # multiprocessing shared list
 mpmanager = multiprocessing.Manager()
 
@@ -50,11 +60,8 @@ finished = mpmanager.list()
 # maximum number of commands allowed
 command_limit = 100
 
-# current audio player
-audio_task = None
-# finished_checker -> create async task to run in background
-# that loops checking len(finished) for > 0 and then running the update
-# when it finishes and then killing itself
+# current audio player for disconnecting through stop
+# audio_task = None
 
 # initialization stuff
 # sets up both discord_token and youtube_token by reading them from filename
@@ -82,8 +89,6 @@ def setup_commands():
     commands = audio_commands + other_commands
     return
 
-# todo list: add asynchronous downloading so the bot doesnt crash, add being able to quit in the middle of playing
-# duration of video has to be greater than 5 seconds
 @client.event
 async def on_ready():
     print('Logged in as')
@@ -94,14 +99,13 @@ async def on_ready():
 @client.event
 async def on_message(message):
     global finished, downloading, audio_commands, commands
-    me_as_member = message.channel.guild.me
     if message.content.lower().startswith(command_prefix):
         await filter_message(message)
-        # if me_as_member.voice.channel is not None:
-        #     await audio_player.disconnect()
         if cleanup:
             await delete_message(message)
     # check if any background downloads have finished
+    # this needs to get moved to its own background task
+    # spams the check in a while true loop with a return in the while true
     if len(finished) > 0:
         result = 'These commands have finished downloading: '
         for i in range(len(finished)):
@@ -165,6 +169,7 @@ async def filter_message(message):
         await execute_audio_command(message)
         return
 
+# this needs to also disconnect through audio_player
 async def stop_command(message):
     global audio_task
     if audio_task != None:
@@ -261,17 +266,18 @@ def list_audio_commands():
     return result
 
 async def execute_audio_command(message):
-    global audio_task
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
         command = message.content[5:]
         file = get_sound(command)
         if file != None:
-            if audio_task == None:
-                audio_player = await audio_channel.connect()
-                audio_task = audio_player.loop.create_task(play_audio_command(audio_player, file))
-                audio_player.loop.create_task(disconnect_from_audio(audio_player))
+            audio_player = await audio_channel.connect()
+            audio_player.play(discord.FFmpegPCMAudio(file), after=None)
+            while audio_player.is_playing():
+                await asyncio.sleep(1)
+            audio_player.stop()
+            await audio_player.disconnect()
         # audio file couldn't be found
         # else: print out error saying audio file not found
         return
@@ -279,18 +285,6 @@ async def execute_audio_command(message):
     self_mention = client.user.mention
     error_message = author_mention + ' ' + self_mention + ' cannot speak in your audio channel!'
     await check_send_message(message, error_message)
-    return
-
-async def play_audio_command(audio_player, file):
-    audio_player.play(discord.FFmpegPCMAudio(file), after=lambda e: print('finished audio', e))
-    return
-
-async def disconnect_from_audio(audio_player):
-    global audio_task
-    while(not audio_task.done()):
-        pass
-    await audio_player.disconnect()
-    audio_task = None
     return
 
 def get_sound(command):
