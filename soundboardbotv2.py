@@ -40,11 +40,15 @@ duration_limit = 180
 downloading = []
 # number of concurrent downloads allowed
 downloading_limit = 3
+# list of finished downloaded commands
+finished = []
+# bool for needing to send an update or not
+send_download_update = False
 # maximum number of commands allowed
 command_limit = 100
 
 # PLACEHOLDER UNTIL MULTIPROCESSING DOWNLOADING IS WORKING
-video_limit = 1000 #in minutes
+# video_limit = 1000 #in minutes
 
 # initialization stuff
 # sets up both discord_token and youtube_token by reading them from filename
@@ -83,20 +87,42 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    global send_download_update
     if message.content.lower().startswith(command_prefix):
         await filter_message(message)
         if cleanup:
             await delete_message(message)
-    
+    if send_download_update:
+        result = 'These commands have finished downloading: '
+        for i in range(len(finished)):
+            result += finished[i] + ' '
+        await check_send_message(message, result)
+        send_download_update = False
+    # finished = update_downloading()
+    # if len(finished) > 0:
+    #     downloading_update = 'The '
+    #     for i in range(len(finished)):
+    #         downloading_update += '\"' + finished[i] + '\" '
+    #     downloading_update += 'commands have finished downloading!'
+    #     await check_send_message(message, downloading_update)
     return
     
-def update_downloading():
-    global downloading, audio_commands, commands
-    for i in range(len(downloading)):
-        file_name = file_prefix + downloading[i] + file_suffix
-        if file_name in os.listdir(os.getcwd()):
-            audio_commands.append(downloading[i])
-            commands.append(downloading[i])
+# def update_downloading():
+#     global downloading, audio_commands, commands
+#     finished = []
+#     if len(downloading) > 0:
+#         for i in range(len(downloading)):
+#             file_name = file_prefix + downloading[i] + file_suffix
+#             if file_name in os.listdir(os.getcwd()):
+#                 audio_commands.append(downloading[i])
+#                 audio_commands.sort()
+#                 commands.append(downloading[i])
+#                 commands.sort()
+#                 finished.append(downloading[i])
+#     if len(finished) > 0:
+#         for i in range(len(finished)):
+#             downloading.remove(finished[i])
+#     return finished
             
 
 async def filter_message(message):
@@ -151,7 +177,7 @@ async def clear(message):
     author_mention = message.author.mention
     me_as_member = message.channel.guild.me
     if message.channel.permissions_for(me_as_member).manage_messages:
-        deleted = await message.channel.purge(message.channel, limit=500, check=clear_conditions)
+        deleted = await message.channel.purge(limit=500, check=clear_conditions)
     else:
         self_mention = client.user.mention
         error_message = author_mention + ' ' + self_mention + ' does not have permission to remove messages! '
@@ -329,59 +355,99 @@ async def create_command(message, url, command_name, start_time, duration):
         await check_send_message(message, error_message)
         return
     downloading.append(command_name)
-    create_new_command = multiprocessing.Process(target=download_and_trim, args=(url,))
-    create_new_command.start()
-    update = author_mention + ' downloading the requested video!'
+    create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
+    create_new_command_process.start()
+    update = author_mention + ' Beginning to create the \"' + command_name + '\" command!'
     await check_send_message(message, update)
-    update = author_mention + ' download complete! Beginning trimming audio.'
     return
 
+def create_new_command(url, command_name, start_time, duration):
+    global downloading, finished, send_download_update
+    video = pafy.new(url)
+    video_formatting = 'm4a'
+    download_video_process = multiprocessing.Process(target=download_video, args=(video, video_formatting))
+    download_video_process.start()
+    download_video_process.join()
+    min_and_seconds = start_time.split(':')
+    start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
+    trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video, video_formatting, command_name, start_time_seconds, duration))
+    trim_and_create_process.start()
+    trim_and_create_process.join()
+    finished.append(command_name)
+    downloading.remove(command_name)
+    send_download_update = True
+    return
 
-def download_and_trim(video):
-    best_audio = video.getbest(preftype ="mp4")
+def download_video(video, video_formatting):
+    best_audio = video.getbestaudio(preftype=video_formatting)
     best_audio.download()
     return
 
-async def trim_audio(message, title, length, start_time, duration, command_name):
-    times = start_time.split(':')
+def trim_and_create(video, video_formatting, command_name, start_time_seconds, duration_seconds):
     formatting = file_suffix[1:]
-    if len(times) != 2:
-        return 1
-    elif float(duration) <= 0:
-        return 2
-    total_start_time = (float(times[0]) * 60) + float(times[1])
-    if total_start_time < 0:
-        return 3
-    audio = AudioSegment.from_file(title,'m4a')
-    audio_length = audio.duration_seconds
-    print('original video length = ' + str(length))
+    video_audio = AudioSegment.from_file(video.title,video_formatting)
+    audio_length = video_audio.duration_seconds
+    # PRINT STATEMENTS ARE DEBUGGING
+    print('DEBUGGING WEIRD PAFY AUDIO LENGTH BUG')
+    print('original video length = ' + str(video.length))
     print('original audio length = ' + str(audio_length))
-    # add 1 to length to account for milliseconds
-    if (length + 1) < audio_length:
+    if (video.length + 1) < audio_length:
         audio_length /= 2
     print('updated audio length = ' + str(audio_length))
-    video_limit_sec = video_limit * 60
-    if total_start_time >= audio_length:
-        return 4
-    elif total_start_time + float(duration) > audio_length:
-        return 5
-    start_time_ms = (audio_length - total_start_time) * -1000
-    print('start time ms = '+str(start_time_ms))
-    duration_ms = float(duration) * 1000
-    print('duration ms  = '+ str(duration_ms))
-    starting_audio = audio[start_time_ms:]
+    start_time_ms = (audio_length - start_time_seconds) * -1000
+    duration_ms = float(duration_seconds) * 1000
+    print('start time in seconds' + str(start_time_seconds))
+    print('start time in ms = ' + str(start_time_ms))
+    print('duration in seconds ' + str(duration_seconds))
+    print('duration in ms = ' + str(duration_ms))
+    starting_audio = video_audio[start_time_ms:]
     final_audio = starting_audio[:duration_ms]
     file_name = file_prefix + command_name + file_suffix
     final_audio.export(file_name, format=formatting)
-    os.remove(title)
-    audio_commands.append(command_name)
-    audio_commands.sort()
-    commands.append(command_name)
-    audio_commands.sort()
-    author_mention = message.author.mention
-    update = author_mention + ' trimming complete! ' + command_prefix + command_name + ' is now ready to be used!'
-    await check_send_message(message, update)
-    return 0
+    os.remove(video.title + file_suffix)
+    return
+
+# old async function for trimming audio
+# async def trim_audio(message, title, length, start_time, duration, command_name):
+#     times = start_time.split(':')
+#     formatting = file_suffix[1:]
+#     if len(times) != 2:
+#         return 1
+#     elif float(duration) <= 0:
+#         return 2
+#     total_start_time = (float(times[0]) * 60) + float(times[1])
+#     if total_start_time < 0:
+#         return 3
+#     audio = AudioSegment.from_file(title,'m4a')
+#     audio_length = audio.duration_seconds
+#     print('original video length = ' + str(length))
+#     print('original audio length = ' + str(audio_length))
+#     # add 1 to length to account for milliseconds
+#     if (length + 1) < audio_length:
+#         audio_length /= 2
+#     print('updated audio length = ' + str(audio_length))
+#     video_limit_sec = video_limit * 60
+#     if total_start_time >= audio_length:
+#         return 4
+#     elif total_start_time + float(duration) > audio_length:
+#         return 5
+#     start_time_ms = (audio_length - total_start_time) * -1000
+#     print('start time ms = '+str(start_time_ms))
+#     duration_ms = float(duration) * 1000
+#     print('duration ms  = '+ str(duration_ms))
+#     starting_audio = audio[start_time_ms:]
+#     final_audio = starting_audio[:duration_ms]
+#     file_name = file_prefix + command_name + file_suffix
+#     final_audio.export(file_name, format=formatting)
+#     os.remove(title)
+#     audio_commands.append(command_name)
+#     audio_commands.sort()
+#     commands.append(command_name)
+#     audio_commands.sort()
+#     author_mention = message.author.mention
+#     update = author_mention + ' trimming complete! ' + command_prefix + command_name + ' is now ready to be used!'
+#     await check_send_message(message, update)
+#     return 0
 
 async def check_send_message(message, message_content):
     me_as_member = message.channel.guild.me
