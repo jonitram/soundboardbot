@@ -9,12 +9,16 @@ import sys
 
 
 # TODO:
+# UPDATE README WITH BOT INSTRUCTIONS
+# maybe copy help message / put cal l .sbb help to let people know how
+# to use it
 # REFACTOR CODE BASE WITH ONLY ONE DOWNLOAD AT A TIME
 # check in create command for downloading
 # maybe change finished from a list to a value/queue
 # FILL IN STATUS UPDATE MESSAGES
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # test precondition checks for commands
+# FINISH COPY - using message -> save('filename')
 
 # multiprocessing shared list
 mpmanager = multiprocessing.Manager()
