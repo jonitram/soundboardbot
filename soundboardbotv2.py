@@ -51,7 +51,7 @@ finished = mpmanager.list()
 command_limit = 100
 
 # current audio player
-audio_player = None
+currently_playing_audio_task = None
 
 # initialization stuff
 # sets up both discord_token and youtube_token by reading them from filename
@@ -91,8 +91,11 @@ async def on_ready():
 @client.event
 async def on_message(message):
     global finished, downloading, audio_commands, commands
+    me_as_member = message.channel.guild.me
     if message.content.lower().startswith(command_prefix):
         await filter_message(message)
+        # if me_as_member.voice.channel is not None:
+        #     await audio_player.disconnect()
         if cleanup:
             await delete_message(message)
     # check if any background downloads have finished
@@ -110,7 +113,6 @@ async def on_message(message):
     return  
 
 async def filter_message(message):
-    me_as_member = message.channel.guild.me
     author_mention = message.author.mention
     command = message.content[5:]
     parameters = command.split(' ')
@@ -154,9 +156,7 @@ async def filter_message(message):
         await check_send_message(message, error_message)
         return
     else:
-        await play_audio_command(message)
-        if me_as_member.voice.channel is not None:
-            await audio_player.disconnect()
+        await execute_audio_command(message)
         return
 
 async def clear(message):
@@ -244,23 +244,27 @@ def list_audio_commands():
         result += 'There are no audio commands yet!'
     return result
 
-async def play_audio_command(message):
-    global audio_player
+async def execute_audio_command(message):
+    global currently_playing_audio_task
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
         command = message.content[5:]
         file = get_sound(command)
-        if file != 'remove':
-            audioplayer = await audio_channel.connect()
-            audioplayer.play(discord.FFmpegPCMAudio(file), after=lambda e: print('finished audio', e))
-            return
-        # audio file couldn't be found    
-        # else:
+        # can really be any of the non-audio commands
+        if file != None:
+            currently_playing_audio_task = asyncio.ensure_future(play_audio_command(message, audio_channel, file))
+        # audio file couldn't be found
+        # else: print out error saying audio file not found
     author_mention = message.author.mention
     self_mention = client.user.mention
     error_message = author_mention + ' ' + self_mention + ' cannot speak in your audio channel!'
     await check_send_message(message, error_message)
+    return
+
+async def play_audio_command(message, audio_channel, file):
+    audio_player = await audio_channel.connect()
+    audio_player.play(discord.FFmpegPCMAudio(file), after=lambda e: print('finished audio', e))
     return
 
 def get_sound(command):
@@ -270,7 +274,7 @@ def get_sound(command):
     elif command in audio_commands:
         result = file_prefix + command + file_suffix
     else: 
-        result = 'remove'
+        result = None
     return result
 
 async def send_help(message):
@@ -303,39 +307,39 @@ async def delete_message(message):
     return
 
 def check_create_preconditions(url, command_name, start_time, duration):
-    result = ' '
+    result = None
     video = pafy.new(url)
     min_and_seconds = start_time.split(':')
     if len(min_and_seconds) != 2:
-        result += 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
+        result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
         return result
     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
     if command_name in commands:
-        result += 'That command is already defined! If it is a audio command, please delete that audio command first!'
+        result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
     elif command_name in downloading:
-        result += 'That command is currently downloading. Please label your command something else.'
+        result = 'That command is currently downloading. Please label your command something else.'
     elif len(commands) > command_limit:
-        result += 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
+        result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
     elif float(duration) <= 0:
-        result += 'Duration must be greater than 0!'
+        result = 'Duration must be greater than 0!'
     elif float(duration) > duration_limit:
-        result += 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
+        result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
     elif start_time_seconds <= 0:
-        result += 'The starting time must be greater than or equal to 0:00!'
+        result = 'The starting time must be greater than or equal to 0:00!'
     elif start_time_seconds >= video.length:
-        result += 'The starting time must be within the video\'s length!'
+        result = 'The starting time must be within the video\'s length!'
     elif start_time_seconds + float(duration) > video.length:
-        result += 'You cannot have the duration extend passed the end of the video!'
+        result = 'You cannot have the duration extend passed the end of the video!'
     elif len(downloading) >= downloading_limit:
-        result += 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
+        result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
     return result
 
 async def create_command(message, url, command_name, start_time, duration):
     global downloading
     author_mention = message.author.mention
     create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
-    if create_preconditions != ' ':
-        error_message = author_mention + create_preconditions
+    if create_preconditions != None:
+        error_message = author_mention + ' ' + create_preconditions
         await check_send_message(message, error_message)
         return
     downloading.append(command_name)
