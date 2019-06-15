@@ -3,3 +3,4 @@ discord
 youtube_dl
 pafy
 pydub
+PyNaCl
