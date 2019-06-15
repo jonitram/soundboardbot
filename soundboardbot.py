@@ -109,17 +109,17 @@ async def on_message(message):
     # check if any background downloads have finished
     # this needs to get moved to its own background task
     # spams the check in a while true loop with a return in the while true
-    if len(finished) > 0:
-        result = 'These commands have finished downloading: '
-        for i in range(len(finished)):
-            result += finished[i] + ' '
-            downloading.remove(finished[i])
-            audio_commands.append(finished[i])
-            audio_commands.sort()
-            commands.append(finished[i])
-            commands.sort()
-        finished[:] = []
-        await check_send_message(message, result)
+    # if len(finished) > 0:
+    #     result = 'These commands have finished downloading: '
+    #     for i in range(len(finished)):
+    #         result += finished[i] + ' '
+    #         downloading.remove(finished[i])
+    #         audio_commands.append(finished[i])
+    #         audio_commands.sort()
+    #         commands.append(finished[i])
+    #         commands.sort()
+    #     finished[:] = []
+    #     await check_send_message(message, result)
     return  
 
 async def filter_message(message):
@@ -383,6 +383,24 @@ async def create_command(message, url, command_name, start_time, duration):
     create_new_command_process.start()
     update = author_mention + ' Beginning to create the \"' + command_name + '\" command!'
     await check_send_message(message, update)
+    asyncio.create_task(finished_command(message))
+    return
+
+async def finished_command(message):
+    global finished, downloading, audio_commands, commands
+    while len(finished) == 0:
+        await asyncio.sleep(1)
+    command = finished[0]
+    finished.remove(command)
+    result = 'This command has finished downloading: '
+    result += command
+    downloading.remove(command)
+    audio_commands.append(command)
+    audio_commands.sort()
+    commands.append(command)
+    commands.sort()
+    finished.remove(command)
+    await check_send_message(message, result)
     return
 
 def create_new_command(url, command_name, start_time, duration):
