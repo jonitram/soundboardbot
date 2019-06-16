@@ -1,5 +1,5 @@
 asyncio
-discord
+discord>=1.0
 youtube_dl
 pafy
 pydub
