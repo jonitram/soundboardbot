@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import discord
 import asyncio
 import pafy
@@ -8,14 +9,11 @@ import os
 import sys
 
 # TODO:
-# precondition on stop for only stopping when u r in audio channel, no outsiders allowed
 # UPDATE README WITH BOT INSTRUCTIONS
-# maybe copy help message / put cal l .sbb help to let people know how
+# maybe copy help message / put call .sbb help to let people know how
 # to use it
-# REFACTOR CODE BASE WITH ONLY ONE DOWNLOAD AT A TIME
 # check in create command for downloading
 # maybe change finished from a list to a value/queue
-# FILL IN STATUS UPDATE MESSAGES
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # test precondition checks for commands
 # FINISH COPY - using message -> save('filename')
@@ -57,7 +55,7 @@ duration_limit = 30
 # then the command can be removed from this list
 downloading = []
 # number of concurrent downloads allowed
-downloading_limit = 3
+downloading_limit = 1
 # list of finished downloaded commands
 finished = mpmanager.list()
 # maximum number of commands allowed
@@ -105,9 +103,9 @@ async def on_ready():
 async def on_message(message):
     global finished, downloading, audio_commands, commands
     if message.content.lower().startswith(command_prefix):
-        await filter_message(message)
+        asyncio.create_task(filter_message(message))
         if cleanup:
-            await delete_message(message)
+            asyncio.create_task(delete_message(message))
     return  
 
 async def filter_message(message):
@@ -118,7 +116,7 @@ async def filter_message(message):
     if parameters[0] == 'create':
         if len(parameters) != 5:
             error_message = author_mention + ' That is not the correct \"create\" audio command formatting!'
-            await check_send_message(message, error_message)
+            asyncio.create_task(check_send_message(message, error_message))
             return
         else:
             asyncio.create_task(create_command(message, parameters[1], parameters[2], parameters[3], parameters[4]))
@@ -126,56 +124,69 @@ async def filter_message(message):
     elif parameters[0] == 'remove':
         if len(parameters) != 2:
             error_message = author_mention + ' That is not the correct \"remove\" audio command formatting!'
-            await check_send_message(message, error_message)
+            asyncio.create_task(check_send_message(message, error_message))
             return
         else:
-            await remove_command(message, parameters[1])
+            asyncio.create_task(remove_command(message, parameters[1]))
             return
     elif parameters[0] == 'listaudio':
-        await send_list_audio_commands(message)
+        asyncio.create_task(send_list_audio_commands(message))
         return
     elif parameters[0] == 'cleanup':
-        await cleanup_update(message)
+        asyncio.create_task(cleanup_update(message))
         return
     elif parameters[0] == 'clear':
-        await clear(message)
+        asyncio.create_task(clear(message))
         return
     elif parameters[0] == 'help':
-        await send_help(message)
+        asyncio.create_task(send_help(message))
         return
     elif parameters[0] == 'downloading':
-        await send_downloading(message)
+        asyncio.create_task(send_downloading(message))
         return
     elif parameters[0] == 'stop':
         await stop_command(message)
         return
     elif command not in commands:
         error_message = author_mention + ' That is not a valid command!'
-        await check_send_message(message, error_message)
+        asyncio.create_task(check_send_message(message, error_message))
         return
     elif message.author.voice is None:
         error_message = author_mention + ' You need to be in a audio channel to use that command!'
-        await check_send_message(message, error_message)
+        asyncio.create_task(check_send_message(message, error_message))
         return
     else:
         if audio_task != None and audio_task.done():
             audio_task = None
         if audio_task == None:
-            audio_task = asyncio.create_task(execute_audio_command(message))
-        # spit out error about already performing an audio command    
-        # else:
+            audio_task = asyncio.create_task(execute_audio_command(message))  
+        else:
+            error_message = author_mention + ' An audio command is currently playing. Please wait for it to finish or use the \"stop\" command before playing a new one.'
+            asyncio.create_task(check_send_message(message, error_message))
         return
 
 async def stop_command(message):
     global audio_task, audio_player
-    if audio_task != None:
-        audio_task.cancel()
-        # send message about stopping thing
-    # send message about not running
-    # else:
-    await audio_player.disconnect()
-    audio_player = None
-    audio_task = None
+    author_mention = message.author.mention
+    me_as_member = message.channel.guild.me
+    if message.author.voice != None:
+        if me_as_member.voice != None:
+            if message.author.voice.channel == me_as_member.voice.channel:
+                if audio_task != None:
+                    audio_task.cancel()
+                    result = author_mention + ' The currently playing audio command has stopped.'
+                    await audio_player.disconnect()
+                    audio_player = None
+                    audio_task = None
+                else:
+                    print('***Concurrency Error, should not be possible***')
+            else:
+                result = author_mention + ' You have to be in the same voice channel as the bot to use the \"stop\" command.'
+        else:
+            result = author_mention + ' There is no audio command currently playing.'
+    else:
+        result = author_mention + ' You have to be in a voice channel to use the \"stop\" command.'
+    asyncio.create_task(check_send_message(message, result))
     return
 
 async def clear(message):
@@ -187,8 +198,8 @@ async def clear(message):
     else:
         self_mention = client.user.mention
         error_message = author_mention + ' ' + self_mention + ' does not have permission to remove messages! '
-        await check_send_message(message, error_message)
-    await message.channel.send('Deleted {} message(s).'.format(len(deleted)))
+        asyncio.create_task(check_send_message(message, error_message))
+    asyncio.create_task(message.channel.send('Deleted {} message(s).'.format(len(deleted))))
     return
 
 def clear_conditions(message):
@@ -200,11 +211,11 @@ async def cleanup_update(message):
     author_mention = message.author.mention
     cleanup = not cleanup
     if cleanup:
-       cleanup_update_message = author_mention + ' Valid commands will now be deleted if possible.'
-       await check_send_message(message, cleanup_update_message)
+       cleanup_update_message = author_mention + ' any messages beginning with the \".sbb\" command prefix will now be deleted, if possible.'
+       asyncio.create_task(check_send_message(message, cleanup_update_message))
     else:
        cleanup_update_message = author_mention + ' Commands will no longer be deleted.'
-       await check_send_message(message, cleanup_update_message)
+       asyncio.create_task(check_send_message(message, cleanup_update_message))
     return
 
 async def remove_command(message, audio_command):
@@ -212,18 +223,16 @@ async def remove_command(message, audio_command):
     author_mention = message.author.mention
     if audio_command not in audio_commands:
         error_message = author_mention + ' That audio command does not exist!'
-        await check_send_message(message, error_message)
+        asyncio.create_task(check_send_message(message, error_message))
         return
     elif remove_audio_file(audio_command):
-        update = author_mention + ' The ' + command_prefix + ' ' + audio_command + ' audio command has been deleted.'
-        await check_send_message(message, update)
-        audio_commands.remove(audio_command)
-        commands.remove(audio_command)
-        return
+        update = author_mention + ' The ' + command_prefix + ' ' + audio_command + ' audio command has been removed.'
     else:
-        error_message = author_mention + ' The requested audio command\'s file could not be found!'
-        await check_send_message(message, error_message)
-        return
+        update = author_mention + ' The requested audio command\'s file could not be found! The ' + audio_command + ' audio command has been removed.'
+    audio_commands.remove(audio_command)
+    commands.remove(audio_command)
+    asyncio.create_task(check_send_message(message, update))
+    return
         
 def remove_audio_file(audio_command):
     file_name = file_prefix + audio_command + file_suffix
@@ -235,7 +244,7 @@ def remove_audio_file(audio_command):
 async def send_downloading(message):
     author_mention = message.author.mention
     list_downloads = author_mention + ' ' + list_downloading()
-    await check_send_message(message, list_downloads)
+    asyncio.create_task(check_send_message(message, list_downloads))
     return
 
 def list_downloading():
@@ -250,7 +259,7 @@ def list_downloading():
 async def send_list_audio_commands(message):
     author_mention = message.author.mention
     list_audio_message = author_mention + ' ' + list_audio_commands()
-    await check_send_message(message, list_audio_message)
+    asyncio.create_task(check_send_message(message, list_audio_message))
     return
 
 def list_audio_commands():
@@ -267,6 +276,7 @@ async def execute_audio_command(message):
     global audio_player
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
+    author_mention = message.author.mention
     if audio_channel.permissions_for(me_as_member).speak:
         command = message.content[5:]
         file = get_sound(command)
@@ -278,10 +288,9 @@ async def execute_audio_command(message):
             audio_player.stop()
             await audio_player.disconnect()
             audio_player = None
-        # audio file couldn't be found
-        # else: print out error saying audio file not found
+        else:
+            await remove_command(message, command)
         return
-    author_mention = message.author.mention
     self_mention = client.user.mention
     error_message = author_mention + ' ' + self_mention + ' cannot speak in your audio channel!'
     await check_send_message(message, error_message)
@@ -301,29 +310,30 @@ async def send_help(message):
     author_mention = message.author.mention
     self_mention = client.user.mention
     help_message = author_mention + ' Issue a command by typing \"' + command_prefix + ' \" followed by the command to execute it.\n'
-    help_message += 'Use the \"cleanup\" command " to toggle deleting valid issued commands.\n'
-    help_message += 'Mass remove valid and invalid commands made to ' + self_mention + ' and messages sent by ' + self_mention + ' (up to 500 messages back) with the \"clear\" command.\n'
+    help_message += 'Use the \"cleanup\" command " to toggle deleting commands issued to the bot.\n'
+    help_message += 'Mass remove commands issued to the ' + self_mention + ' and messages sent by ' + self_mention + ' (up to 500 messages back) with the \"clear\" command.\n'
     help_message += list_audio_commands() + '\n'
-    help_message += 'You must be in an audio channel to use a audio command.\n'
-    help_message += 'Create a audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
+    help_message += 'You must be in an audio channel to use an audio command.\n'
+    help_message += 'To stop a currently playing audio command, use the \"stop\" command.'
+    help_message += 'Create an audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
     help_message += 'Use the \"downloading\" command to list all of the commands currently downloading.\n'
     # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by \" <CommandName>\" and uploading the single sound file attached to the message.'
     # help_message += 'Uploaded sound files can be no longer than 20 seconds.\n'
-    help_message += 'Remove a audio command by using the \"remove \" command followed by the command name.\n'
+    help_message += 'Remove an audio command by using the \"remove \" command followed by a space and the the command name.\n'
     help_message += 'To list the audio commands available, use the \"listaudio\" command.\n'
     help_message += 'Finally, to resend this message use the \"help\" command.'
-    await check_send_message(message, help_message)
+    asyncio.create_task(check_send_message(message, help_message))
     return
 
 async def delete_message(message):
     me_as_member = message.channel.guild.me
     author_mention = message.author.mention
     if message.channel.permissions_for(me_as_member).manage_messages:
-        await message.delete()
+        asyncio.create_task(message.delete())
     else:
         self_mention = client.user.mention
         error_message = author_mention + ' ' + self_mention + ' does not have permission to remove messages!'
-        await check_send_message(message, error_message)
+        asyncio.create_task(check_send_message(message, error_message))
     return
 
 def check_create_preconditions(url, command_name, start_time, duration):
@@ -360,13 +370,13 @@ async def create_command(message, url, command_name, start_time, duration):
     create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
     if create_preconditions != None:
         error_message = author_mention + ' ' + create_preconditions
-        await check_send_message(message, error_message)
+        asyncio.create_task(check_send_message(message, error_message))
         return
     downloading.append(command_name)
     create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
     create_new_command_process.start()
     update = author_mention + ' Beginning to create the \"' + command_name + '\" command!'
-    await check_send_message(message, update)
+    asyncio.create_task(check_send_message(message, update))
     asyncio.create_task(finished_command(message))
     return
 
@@ -383,7 +393,7 @@ async def finished_command(message):
     audio_commands.sort()
     commands.append(command)
     commands.sort()
-    await check_send_message(message, result)
+    asyncio.create_task(check_send_message(message, result))
     return
 
 def create_new_command(url, command_name, start_time, duration):

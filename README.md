@@ -8,10 +8,10 @@ Google Developer: https://console.developers.google.com
   
     $ brew install ffmpeg  
   
-4. To set the bot up, run this command (requires python3 and pip):  
+4. To set the bot up, run this command (requires python3.7 and pip):  
   
     $ sh setup.sh  
   
-5. Finally, to start the bot, run this command:  
+5. Finally, to start the bot, run this command (requires python 3.7):  
   
-    $ python3 soundboardbot.py
+    $ python3.7 soundboardbot.py

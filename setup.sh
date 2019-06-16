@@ -1,5 +1,5 @@
 #!/bin/bash
-python3 -m pip install -r requirements.txt
+python3.7 -m pip install -r requirements.txt
 rm tokens.txt
 touch tokens.txt
 read -sp $'Please input your discord token:' d_token
