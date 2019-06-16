@@ -8,6 +8,7 @@ import os
 import sys
 
 # TODO:
+# precondition on stop for only stopping when u r in audio channel, no outsiders allowed
 # UPDATE README WITH BOT INSTRUCTIONS
 # maybe copy help message / put cal l .sbb help to let people know how
 # to use it
