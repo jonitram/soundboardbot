@@ -7,7 +7,6 @@ import random
 import os
 import sys
 
-
 # TODO:
 # UPDATE README WITH BOT INSTRUCTIONS
 # maybe copy help message / put cal l .sbb help to let people know how
@@ -83,7 +82,7 @@ def build_commands():
     result = []
     for filename in os.listdir(os.getcwd()):
         if filename.startswith(file_prefix) and filename.endswith(file_suffix):
-            result.append(filename[4:-4])
+            result.append(filename[len(file_prefix):-len(file_suffix)])
     result.sort()
     return result
 
@@ -344,7 +343,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
         result = 'Duration must be greater than 0!'
     elif float(duration) > duration_limit:
         result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
-    elif start_time_seconds <= 0:
+    elif start_time_seconds < 0:
         result = 'The starting time must be greater than or equal to 0:00!'
     elif start_time_seconds >= video.length:
         result = 'The starting time must be within the video\'s length!'
@@ -383,7 +382,6 @@ async def finished_command(message):
     audio_commands.sort()
     commands.append(command)
     commands.sort()
-    finished.remove(command)
     await check_send_message(message, result)
     return
 
