@@ -12,10 +12,8 @@ import sys
 # UPDATE README WITH BOT INSTRUCTIONS
 # maybe copy help message / put call .sbb help to let people know how
 # to use it
-# check in create command for downloading
 # maybe change finished from a list to a value/queue
 # duration of video has to be greater than 5 seconds <- TEST THIS
-# test precondition checks for commands
 # FINISH COPY - using message -> save('filename')
 
 # multiprocessing shared list
@@ -50,7 +48,7 @@ cleanup = False
 # create preconditions
 # max creates sound duration limit for time constraint purposes (in seconds)
 duration_limit = 30
-# video length limit (in minutes)
+# video length limit (in minutes, currently 45)
 video_length_limit = 45 * 60
 # list of commands that are currently being created
 downloading = []
@@ -347,7 +345,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
     if command_name in commands:
         result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
     elif video.length > video_length_limit:
-        result = 'That video would take too long to download, find a shorter video (45 min or less).'
+        result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
     elif command_name in downloading:
         result = 'That command is currently downloading. Please label your command something else.'
     elif len(commands) > command_limit:
