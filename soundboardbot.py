@@ -50,9 +50,9 @@ cleanup = False
 # create preconditions
 # max creates sound duration limit for time constraint purposes (in seconds)
 duration_limit = 30
+# video length limit (in minutes)
+video_length_limit = 45 * 60
 # list of commands that are currently being created
-# <logic>: basically check for the existence of a file in the cwd and if it exists
-# then the command can be removed from this list
 downloading = []
 # number of concurrent downloads allowed
 downloading_limit = 1
@@ -346,6 +346,8 @@ def check_create_preconditions(url, command_name, start_time, duration):
     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
     if command_name in commands:
         result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
+    elif video.length > video_length_limit:
+        result = 'That video would take too long to download, find a shorter video (45 min or less).'
     elif command_name in downloading:
         result = 'That command is currently downloading. Please label your command something else.'
     elif len(commands) > command_limit:
