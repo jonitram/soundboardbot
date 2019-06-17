@@ -4,14 +4,14 @@
   
     $ git clone https://github.com/jonitram/soundboardbot.git  
   
-   If you do not have git installed, it can be installed via homebrew through this command:  
+    If you do not have git installed, it can be installed via homebrew through this command:  
   
     $ brew install git  
   
 2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube api token at these locations:  
   
-Discord Developer: https://discordapp.com/developers  
-Google Developer: https://console.developers.google.com  
+    Discord Developer: https://discordapp.com/developers  
+    Google Developer: https://console.developers.google.com  
   
 3. Additionally, the bot requires 'ffmpeg' for audio manipulation. This can be installed via homebrew through this command:  
   
@@ -30,4 +30,4 @@ Google Developer: https://console.developers.google.com
     $ python3.7 soundboardbot.py  
   
 7. Finally, to issue commands to the bot, use the prefix ".sbb" followed by a space and the command.  
-   ".sbb help" will explain each of the bot's commands in depth along with how to use them.
+    ".sbb help" will explain each of the bot's commands in depth along with how to use them.
