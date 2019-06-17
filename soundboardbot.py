@@ -12,6 +12,7 @@ import sys
 # UPDATE README WITH BOT INSTRUCTIONS
 # maybe copy help message / put call .sbb help to let people know how
 # to use it
+# add user prompt for if tokens.txt exists and if they would like to reset it or not
 # maybe change finished from a list to a value/queue
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # FINISH COPY - using message -> save('filename')
