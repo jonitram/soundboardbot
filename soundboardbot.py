@@ -354,8 +354,8 @@ def check_create_preconditions(url, command_name, start_time, duration):
         result = 'Duration must be greater than 0!'
     elif float(duration) > duration_limit:
         result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
-    elif start_time_seconds < 0:
-        result = 'The starting time must be greater than or equal to 0:00!'
+    elif start_time_seconds <= 0:
+        result = 'The starting time must be greater than or equal to 0:00 (You can use 0:00.1)'
     elif start_time_seconds >= video.length:
         result = 'The starting time must be within the video\'s length!'
     elif start_time_seconds + float(duration) > video.length:
