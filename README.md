@@ -16,5 +16,5 @@ Google Developer: https://console.developers.google.com
   
     $ python3.7 soundboardbot.py  
   
-6. Finally, to issue commands to the bot, use ".sbb <command>".  
-   ".sbb help" can explain how to use the bot.
+6. Finally, to issue commands to the bot, use the ".sbb" prefix followed by a space and the command".  
+   ".sbb help" will explain each of the bot's commands in depth along with how to use them.
