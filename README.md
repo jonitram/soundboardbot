@@ -8,7 +8,7 @@ Google Developer: https://console.developers.google.com
   
     $ brew install ffmpeg  
   
-4. To set the bot up, run this command (requires python3.7 and pip):  
+4. To set the bot up, run this command (requires python3.7 and pip3):  
   
     $ sh setup.sh  
   
