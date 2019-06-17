@@ -36,10 +36,12 @@ command_prefix = '.sbb'
 file_prefix = 'sbb_'
 # the filetype for audio files downloaded for commands
 file_suffix = '.mp3'
+# the video format for downloading from youtube
+video_formatting = 'm4a'
 # audio commands
 audio_commands = []
 # other commands sorted in alphabetical order
-other_commands = ['cleanup','clear','create','downloading','help','listaudio','stop','random','remove']
+other_commands = ['cancel','cleanup','clear','create','downloading','help','list','stop','random','remove','restart']
 # all commands
 commands = []
 
@@ -59,7 +61,8 @@ downloading_limit = 1
 finished = mpmanager.list()
 # maximum number of commands allowed
 command_limit = 100
-
+# reference to the background create command processes
+create_new_command_process = None
 # current audio player for disconnecting through stop
 audio_player = None
 # current audio task for cancelling throuhg stop
@@ -75,12 +78,19 @@ def setup_tokens(filename):
     tokens.close()
     return
 
+def cleanup_files():
+    for filename in os.listdir(os.getcwd()):
+        if not filename.startswith(file_prefix):
+            if filename.endswith(video_formatting) or filename.endswith('temp'):
+                os.remove(filename)
+    return
+
 # builds a list of audio commands from existing files already created
 def build_commands():
     result = []
     for filename in os.listdir(os.getcwd()):
         if filename.startswith(file_prefix) and filename.endswith(file_suffix):
-            result.append(filename[len(file_prefix):-len(file_suffix)])
+            result.append(filename[len(file_prefix):-len(file_suffix)].lower())
     result.sort()
     return result
 
@@ -109,10 +119,13 @@ async def on_message(message):
 
 async def filter_message(message):
     global audio_task, audio_player
+    if audio_task != None and audio_task.done():
+            audio_task = None
     author_mention = message.author.mention
-    command = message.content[5:]
-    parameters = command.split(' ')
-    if parameters[0] == 'create':
+    command_message = message.content[5:]
+    parameters = command_message.split(' ')
+    command = parameters[0].lower()
+    if command == 'create':
         if len(parameters) != 5:
             error_message = author_mention + ' That is not the correct \"create\" audio command formatting!'
             asyncio.create_task(check_send_message(message, error_message))
@@ -120,7 +133,7 @@ async def filter_message(message):
         else:
             asyncio.create_task(create_command(message, parameters[1], parameters[2], parameters[3], parameters[4]))
             return
-    elif parameters[0] == 'remove':
+    elif command == 'remove':
         if len(parameters) != 2:
             error_message = author_mention + ' That is not the correct \"remove\" audio command formatting!'
             asyncio.create_task(check_send_message(message, error_message))
@@ -128,23 +141,29 @@ async def filter_message(message):
         else:
             asyncio.create_task(remove_command(message, parameters[1]))
             return
-    elif parameters[0] == 'listaudio':
+    elif command == 'list':
         asyncio.create_task(send_list_audio_commands(message))
         return
-    elif parameters[0] == 'cleanup':
+    elif command == 'cleanup':
         asyncio.create_task(cleanup_update(message))
         return
-    elif parameters[0] == 'clear':
+    elif command == 'clear':
         asyncio.create_task(clear(message))
         return
-    elif parameters[0] == 'help':
+    elif command == 'help':
         asyncio.create_task(send_help(message))
         return
-    elif parameters[0] == 'downloading':
+    elif command == 'downloading':
         asyncio.create_task(send_downloading(message))
         return
-    elif parameters[0] == 'stop':
+    elif command == 'stop':
         await stop_command(message)
+        return
+    elif command == 'cancel':
+        await cancel_download(message)
+        return
+    elif command == 'restart':
+        await restart_command(message)
         return
     elif command not in commands:
         error_message = author_mention + ' That is not a valid command!'
@@ -155,8 +174,6 @@ async def filter_message(message):
         asyncio.create_task(check_send_message(message, error_message))
         return
     else:
-        if audio_task != None and audio_task.done():
-            audio_task = None
         if audio_task == None:
             audio_task = asyncio.create_task(execute_audio_command(message))  
         else:
@@ -277,7 +294,7 @@ async def execute_audio_command(message):
     me_as_member = message.channel.guild.me
     author_mention = message.author.mention
     if audio_channel.permissions_for(me_as_member).speak:
-        command = message.content[5:]
+        command = message.content[5:].lower()
         file = get_sound(command)
         if file != None:
             audio_player = await audio_channel.connect()
@@ -292,7 +309,7 @@ async def execute_audio_command(message):
         return
     self_mention = client.user.mention
     error_message = author_mention + ' ' + self_mention + ' cannot speak in your audio channel!'
-    await check_send_message(message, error_message)
+    asyncio.create_task(check_send_message(message, error_message))
     return
 
 def get_sound(command):
@@ -309,17 +326,19 @@ async def send_help(message):
     author_mention = message.author.mention
     self_mention = client.user.mention
     help_message = author_mention + ' Issue a command by typing \"' + command_prefix + ' \" followed by the command to execute it.\n'
-    help_message += 'Use the \"cleanup\" command " to toggle deleting commands issued to the bot.\n'
-    help_message += 'Mass remove commands issued to the ' + self_mention + ' and messages sent by ' + self_mention + ' (up to 500 messages back) with the \"clear\" command.\n'
     help_message += list_audio_commands() + '\n'
     help_message += 'You must be in an audio channel to use an audio command.\n'
     help_message += 'To stop a currently playing audio command, use the \"stop\" command.'
     help_message += 'Create an audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
     help_message += 'Use the \"downloading\" command to list all of the commands currently downloading.\n'
+    help_message += 'To cancel the currently downloading command, use the \"cancel\" command.\n'
     # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by \" <CommandName>\" and uploading the single sound file attached to the message.'
     # help_message += 'Uploaded sound files can be no longer than 20 seconds.\n'
     help_message += 'Remove an audio command by using the \"remove \" command followed by a space and the the command name.\n'
-    help_message += 'To list the audio commands available, use the \"listaudio\" command.\n'
+    help_message += 'To list the audio commands available, use the \"list\" command.\n'
+    help_message += 'Use the \"cleanup\" command " to toggle deleting commands issued to the bot.\n'
+    help_message += 'Mass remove commands issued to the ' + self_mention + ' and messages sent by ' + self_mention + ' (up to 500 messages back) with the \"clear\" command.\n'
+    help_message += 'To restart the bot use the \"restart\" command (this will only work if the bot is responding to messages).\n'
     help_message += 'Finally, to resend this message use the \"help\" command.'
     asyncio.create_task(check_send_message(message, help_message))
     return
@@ -337,39 +356,45 @@ async def delete_message(message):
 
 def check_create_preconditions(url, command_name, start_time, duration):
     result = None
-    video = pafy.new(url)
-    min_and_seconds = start_time.split(':')
-    if len(min_and_seconds) != 2:
-        result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
-        return result
-    start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-    if command_name in commands:
-        result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
-    elif video.length > video_length_limit:
-        result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
-    elif command_name in downloading:
-        result = 'That command is currently downloading. Please label your command something else.'
-    elif len(commands) > command_limit:
-        result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
-    elif float(duration) <= 0:
-        result = 'Duration must be greater than 0!'
-    elif float(duration) > duration_limit:
-        result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
-    elif start_time_seconds <= 0:
-        result = 'The starting time must be greater than or equal to 0:00 (You can use 0:00.1)'
-    elif start_time_seconds >= video.length:
-        result = 'The starting time must be within the video\'s length!'
-    elif start_time_seconds + float(duration) > video.length:
-        result = 'You cannot have the duration extend passed the end of the video!'
-    elif len(downloading) >= downloading_limit:
-        result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
+    try:
+        video = pafy.new(url)
+    except ValueError:
+        result = 'Please enter a YouTube URL for the \"create\" command.'
+    else:
+        min_and_seconds = start_time.split(':')
+        if len(min_and_seconds) != 2:
+            result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
+            return result
+        start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
+        if command_name in commands:
+            result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
+        elif video.length > video_length_limit:
+            result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
+        elif command_name in downloading:
+            result = 'That command is currently downloading. Please label your command something else.'
+        elif len(commands) > command_limit:
+            result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
+        elif float(duration) <= 0:
+            result = 'Duration must be greater than 0!'
+        elif float(duration) > duration_limit:
+            result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
+        elif start_time_seconds <= 0:
+            result = 'The starting time must be greater than or equal to 0:00 (You can use decimals i.e. 0:00.1)'
+        elif start_time_seconds >= video.length:
+            result = 'The starting time must be within the video\'s length!'
+        elif start_time_seconds + float(duration) > video.length:
+            result = 'You cannot have the duration extend passed the end of the video!'
+        elif len(downloading) >= downloading_limit:
+            result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
+        else:
+            result = 'The currently downloading video is this long: ' + str(video.length) + ' seconds.'
     return result
 
 async def create_command(message, url, command_name, start_time, duration):
-    global downloading
+    global downloading, create_new_command_process
     author_mention = message.author.mention
     create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
-    if create_preconditions != None:
+    if not create_preconditions.startswith("The currently downloading video is this long:"):
         error_message = author_mention + ' ' + create_preconditions
         asyncio.create_task(check_send_message(message, error_message))
         return
@@ -378,35 +403,37 @@ async def create_command(message, url, command_name, start_time, duration):
     create_new_command_process.start()
     update = author_mention + ' Beginning to create the \"' + command_name + '\" command!'
     asyncio.create_task(check_send_message(message, update))
+    asyncio.create_task(check_send_message(message, create_preconditions))
     asyncio.create_task(finished_command(message))
     return
 
 async def finished_command(message):
-    global finished, downloading, audio_commands, commands
+    global finished, downloading, create_new_command_process
     while len(finished) == 0:
         await asyncio.sleep(1)
     command = finished[0]
     finished.remove(command)
-    result = 'This command has finished downloading: '
+    setup_commands()
+    if command in audio_commands:
+        result = 'This command has finished being created: '
+    else:
+        result = 'There was a problem with downloading the video and this command failed to be created: '
+        multiprocessing.Process(target=cleanup_files).start()
     result += command
+    create_new_command_process = None
     downloading.remove(command)
-    audio_commands.append(command)
-    audio_commands.sort()
-    commands.append(command)
-    commands.sort()
     asyncio.create_task(check_send_message(message, result))
     return
 
 def create_new_command(url, command_name, start_time, duration):
     global finished
     video = pafy.new(url)
-    video_formatting = 'm4a'
-    download_video_process = multiprocessing.Process(target=download_video, args=(video, video_formatting))
+    download_video_process = multiprocessing.Process(target=download_video, args=(video, video_formatting), daemon=True)
     download_video_process.start()
     download_video_process.join()
     min_and_seconds = start_time.split(':')
     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-    trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video, video_formatting, command_name, start_time_seconds, duration))
+    trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video, video_formatting, command_name, start_time_seconds, duration), daemon=True)
     trim_and_create_process.start()
     trim_and_create_process.join()
     finished.append(command_name)
@@ -414,7 +441,10 @@ def create_new_command(url, command_name, start_time, duration):
 
 def download_video(video, video_formatting):
     best_audio = video.getbestaudio(preftype=video_formatting)
-    best_audio.download()
+    try:
+        best_audio.download(quiet=True,remux_audio=True)
+    except FileNotFoundError:
+        print('This video failed to download: ' + video.title)
     return
 
 def trim_and_create(video, video_formatting, command_name, start_time_seconds, duration_seconds):
@@ -423,6 +453,7 @@ def trim_and_create(video, video_formatting, command_name, start_time_seconds, d
     video_audio = AudioSegment.from_file(video_file,video_formatting)
     audio_length = video_audio.duration_seconds
     # PRINT STATEMENTS ARE JUST FOR DEBUGGING
+    # REMUX_AUDIO SHOULD HAVE FIXED THESE ERRORS
     print('DEBUGGING WEIRD PAFY AUDIO LENGTH BUG (sometimes downloaded audio would be doubled in length with the latter half being silence')
     print('original video length = ' + str(video.length))
     print('original audio length = ' + str(audio_length))
@@ -446,6 +477,39 @@ async def check_send_message(message, message_content):
     me_as_member = message.channel.guild.me
     if message.channel.permissions_for(me_as_member).send_messages:
         await message.channel.send(message_content)
+    return
+
+async def cancel_download(message):
+    global create_new_command_process, finished, downloading
+    author_mention = message.author.mention
+    if len(downloading) > 0:
+        create_new_command_process.kill()
+        create_new_command_process = None
+        command = downloading[0]
+        if command in finished:
+            finished.remove(command)
+        multiprocessing.Process(target=cleanup_files).start()
+        filename = file_prefix + command + file_suffix
+        if filename in os.listdir(os.getcwd()):
+            os.remove(filename)
+        downloading.clear()
+        setup_commands()
+        update = author_mention + ' The currently downloading \"' + command + '\" audio command has been stopped.'
+    else:
+        update = author_mention + ' Nothing is currently downloading right now.'
+    await check_send_message(message, update)
+    return
+
+async def restart_command(message):
+    author_mention = message.author.mention
+    update = author_mention + ' Restarting the bot.'
+    if audio_task != None:
+        await stop_command(message)
+    if len(downloading) > 0:
+        await cancel_download(message)
+    await check_send_message(message, update)
+    os.execv(sys.executable, ['python3.7'] + sys.argv)
+    # await client.logout()
     return
 
 # old implementation stuff for copy, not really sure what the top cleanup stuff is for 
@@ -490,6 +554,7 @@ async def check_send_message(message, message_content):
 # main function
 def main():
     setup_tokens(tokensfile)
+    cleanup_files()
     setup_commands()
     pafy.set_api_key(youtube_token)
     client.run(discord_token)
