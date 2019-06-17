@@ -12,6 +12,9 @@ Google Developer: https://console.developers.google.com
   
     $ sh setup.sh  
   
-5. Finally, to start the bot, run this command (requires python 3.7):  
+5. To start the bot, run this command (requires python 3.7):  
   
-    $ python3.7 soundboardbot.py
+    $ python3.7 soundboardbot.py  
+  
+6. Finally, to issue commands to the bot, use ".sbb <command>".  
+   ".sbb help" can explain how to use the bot.
