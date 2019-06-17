@@ -9,15 +9,11 @@ import os
 import sys
 
 # TODO:
-# UPDATE README WITH BOT INSTRUCTIONS
-# maybe copy help message / put call .sbb help to let people know how
-# to use it
-# add user prompt for if tokens.txt exists and if they would like to reset it or not
 # maybe change finished from a list to a value/queue
 # duration of video has to be greater than 5 seconds <- TEST THIS
 # FINISH COPY - using message -> save('filename')
 
-# multiprocessing shared list
+# multiprocessing manager for sharing information across child processes
 mpmanager = multiprocessing.Manager()
 
 # api tokens
@@ -36,7 +32,7 @@ command_prefix = '.sbb'
 file_prefix = 'sbb_'
 # the filetype for audio files downloaded for commands
 file_suffix = '.mp3'
-# the video format for downloading from youtube
+# the video format for videos downloaded from youtube
 video_formatting = 'm4a'
 # audio commands
 audio_commands = []
@@ -49,19 +45,19 @@ commands = []
 cleanup = False
 
 # create preconditions
-# max creates sound duration limit for time constraint purposes (in seconds)
+# max create duration limit in seconds (not necessary, just personal preference)
 duration_limit = 30
-# video length limit (in minutes, currently 45)
+# video length limit in minutes (currently 45, not necessary, just there to prevent long downloads)
 video_length_limit = 45 * 60
 # list of commands that are currently being created
 downloading = []
-# number of concurrent downloads allowed
+# number of concurrent downloads allowed (cannot be anything greater than 1)
 downloading_limit = 1
 # list of finished downloaded commands
 finished = mpmanager.list()
-# maximum number of commands allowed
+# maximum number of commands allowed (not necessary, just there to prevent too many files)
 command_limit = 100
-# reference to the background create command processes
+# reference to the background create command processes (used for cancelling downloads)
 create_new_command_process = None
 # current audio player for disconnecting through stop
 audio_player = None
@@ -387,6 +383,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
         elif len(downloading) >= downloading_limit:
             result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
         else:
+            # create command is good to go, just going to update the creator on video length duration
             result = 'The currently downloading video is this long: ' + str(video.length) + ' seconds.'
     return result
 
@@ -457,8 +454,9 @@ def trim_and_create(video, video_formatting, command_name, start_time_seconds, d
     print('DEBUGGING WEIRD PAFY AUDIO LENGTH BUG (sometimes downloaded audio would be doubled in length with the latter half being silence')
     print('original video length = ' + str(video.length))
     print('original audio length = ' + str(audio_length))
-    if (video.length + 1) < audio_length:
-        audio_length /= 2
+    # REMUX_AUDIO SHOULD DEPRECATE THIS CHECK
+    # if (video.length + 1) < audio_length:
+    #     audio_length /= 2
     print('updated audio length = ' + str(audio_length))
     start_time_ms = (audio_length - start_time_seconds) * -1000
     duration_ms = float(duration_seconds) * 1000
@@ -509,7 +507,6 @@ async def restart_command(message):
         await cancel_download(message)
     await check_send_message(message, update)
     os.execv(sys.executable, ['python3.7'] + sys.argv)
-    # await client.logout()
     return
 
 # old implementation stuff for copy, not really sure what the top cleanup stuff is for 
@@ -560,4 +557,3 @@ def main():
     client.run(discord_token)
 
 if __name__ == "__main__": main()
-
