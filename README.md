@@ -1,12 +1,18 @@
 **For use:**  
   
-1. Clone git repository through this command:  
+1. Clone git repository through this command (requires git):  
   
     $ git clone https://github.com/jonitram/soundboardbot.git  
   
+   If you do not have git installed, it can be installed via homebrew through this command:  
+  
+    $ brew install git  
+  
 2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube api token at these locations:  
+  
 Discord Developer: https://discordapp.com/developers  
 Google Developer: https://console.developers.google.com  
+  
 3. Additionally, the bot requires 'ffmpeg' for audio manipulation. This can be installed via homebrew through this command:  
   
     $ brew install ffmpeg  
