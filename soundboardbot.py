@@ -384,7 +384,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
             result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
         else:
             # create command is good to go, just going to update the creator on video length duration
-            result = 'The currently downloading video is this long: ' + str(video.length) + ' seconds.'
+            result = 'The currently downloading video is this long: ' + str(video.duration) + '.'
     return result
 
 async def create_command(message, url, command_name, start_time, duration):
