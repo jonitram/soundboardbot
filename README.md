@@ -31,7 +31,7 @@
     $ sudo apt-get update  
     $ sudo apt-get install ffmpeg  
   
-    Linux (ffmpeg may require libav-tools):  
+    Linux (libav-tools, ffmpeg may require libav-tools):  
   
     $ sudo apt-get install libav-tools  
   
