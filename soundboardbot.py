@@ -372,7 +372,6 @@ def check_create_preconditions(url, command_name, start_time, duration):
                     result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
                 else:
                     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-                    video
                     if command_name in commands:
                         result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
                     elif video.length > video_length_limit:
