@@ -55,7 +55,7 @@ downloading_limit = 1
 # list of finished downloaded commands
 finished = mpmanager.list()
 # maximum number of commands allowed (not necessary, just there to prevent too many files)
-command_limit = 100
+audio_command_limit = 100
 # reference to the background create command processes (used for cancelling downloads)
 create_new_command_process = None
 # current audio player for disconnecting through stop
@@ -227,10 +227,10 @@ async def cleanup_update(message):
     global cleanup
     cleanup = not cleanup
     if cleanup:
-       cleanup_update_message = message.author.mention + ' any messages beginning with the \".sbb\" command prefix will now be deleted, if possible.'
+       cleanup_update_message = message.author.mention + ' any messages beginning with the \"' +command_prefix + '\" command prefix will now be deleted.'
        asyncio.create_task(check_send_message(message, cleanup_update_message))
     else:
-       cleanup_update_message = message.author.mention + ' Commands will no longer be deleted.'
+       cleanup_update_message = message.author.mention + ' Commands issued to the bot will no longer be deleted.'
        asyncio.create_task(check_send_message(message, cleanup_update_message))
     return
 
@@ -318,21 +318,29 @@ def get_sound(command):
     return result
 
 async def send_help(message):
-    help_message = message.author.mention + ' Issue a command by typing \"' + command_prefix + ' \" followed by a space and then the command to execute it.\n'
-    help_message += list_audio_commands() + '\n'
+    help_message = message.author.mention + ' Issue a command by typing \"' + command_prefix + '\" followed by a space and then the command to execute it.\n'
+    help_message += '- ' + list_audio_commands() + '\n'
     help_message += 'You must be in an audio channel to use an audio command.\n'
-    help_message += 'To stop a currently playing audio command, use the \"stop\" command.\n'
-    help_message += 'Create an audio command using the \"create\" command followed by \" <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" with each seperated by a single space.\n' 
-    help_message += 'Use the \"downloading\" command to list all of the commands currently downloading.\n'
-    help_message += 'To cancel the currently downloading command, use the \"cancel\" command.\n'
+    help_message += '- \"stop\" : Stops a currently playing audio command.\n'
+    help_message += '- \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName>.\n' 
+    help_message += 'Each parameter of the \"create\" command must be separated by exactly a single space.\n'
+    help_message += '- \"downloading\" : Lists all of the currently downloading commands.\n'
+    help_message += '- \"cancel\" : Cancels the currently downloading comamnd.\n'
     # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by a space and \" <CommandName>\" along with uploading a single sound file attached to the message.'
     # help_message += 'Uploaded sound files can be no longer than ' + duration_limit + ' seconds.\n'
-    help_message += 'Remove an audio command by using the \"remove \" command followed by a space and the the command name.\n'
-    help_message += 'To list the audio commands available, use the \"list\" command.\n'
-    help_message += 'Use the \"cleanup\" command " to toggle deleting commands issued to the bot.\n'
-    help_message += 'Mass remove commands issued to the ' + client.user.mention + ' and messages sent by ' + client.user.mention + ' (up to 500 messages back) with the \"clear\" command.\n'
-    help_message += 'To restart the bot use the \"restart\" command (this will only work if the bot is responding to messages). Restarting the bot will stop all downloads and audio commands and relog it into Discord.\n'
-    help_message += 'Finally, to resend this message use the \"help\" command.'
+    help_message += '- \"remove <CommandName>\" : Removes the <CommandName> audio command.\n'
+    help_message += '- \"list\" : Lists all audio commands available.\n'
+    help_message += '- \"cleanup\" : Toggles automatically deleting commands issued to the bot.\n'
+    help_message += 'Currently: '
+    if cleanup:
+        help_message += 'Enabled'
+    else:
+        help_message += 'Disabled'
+    help_message += '.\n'
+    help_message += '- \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).\n'
+    help_message += '- \"restart\" : Stops all audio commands, cancels all downloads, and restarts the bot.\n'
+    help_message += 'This command will only work if the bot is still responding to messages.\n'
+    help_message += '- \"help\" : Sends this message.'
     asyncio.create_task(check_send_message(message, help_message))
     return
 
@@ -378,8 +386,8 @@ def check_create_preconditions(url, command_name, start_time, duration):
                         result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
                     elif command_name in downloading:
                         result = 'That command is currently downloading. Please label your command something else.'
-                    elif len(commands) > command_limit:
-                        result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
+                    elif len(audio_commands) > audio_command_limit:
+                        result = 'There are already ' + str(audio_command_limit) + ' audio commands! Please remove an audio command before adding a new one.'
                     elif float() <= 0:
                         result = 'Duration must be greater than 0!'
                     elif float(duration) > duration_limit:
@@ -408,7 +416,7 @@ async def create_command(message, url, command_name, start_time, duration):
     downloading.append(command_name)
     create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
     create_new_command_process.start()
-    update = message.author.mention + ' Beginning to create the \"' + command_name + '\" command!'
+    update = message.author.mention + ' Beginning to create the \"' + command_name + '\" audio command!'
     asyncio.create_task(check_send_message(message, update))
     asyncio.create_task(check_send_message(message, create_preconditions))
     asyncio.create_task(finished_command(message))
@@ -424,8 +432,9 @@ async def finished_command(message):
     if command in audio_commands:
         result = 'This command has finished being created: '
     else:
-        result = message.author.mention + ' Something went wrong when creating this command (if this failed instantly, then the video cannot be downloaded. Otherwise your command duration extended < 1 second passed the end of the video): '
-    result += command
+        result = message.author.mention + ' Something went wrong when creating this command: '
+    result += command + '\n'
+    result += 'If this failed instantly, then the video cannot be downloaded. Otherwise your command duration extended < 1 second passed the end of the video.'
     create_new_command_process = None
     downloading.remove(command)
     asyncio.create_task(check_send_message(message, result))
@@ -506,13 +515,13 @@ async def restart_command(message):
     return
 
 # copy command logic
-# '.sbb copy <command_name>'
+# command_prefix copy <command_name>'
 # so len(parameters) == 2 in filter_message
 # only one attachment allowed
 # so len(message.attachments) == 1
 # check filetype for audio file
 # check for existence of command
-# check command_limit
+# check audio_command_limit
 # download audio
 # check audio duration, if >= duration_limit -> too long
 # filename = file_prefix + command_name (parameters[1]) + file_suffix
