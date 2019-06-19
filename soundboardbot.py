@@ -434,7 +434,7 @@ async def finished_command(message):
     else:
         result = message.author.mention + ' Something went wrong when creating this command: '
         result += command + '\n'
-        result += 'If this failed instantly, then the video cannot be downloaded. Otherwise your command duration extended < 1 second passed the end of the video.'
+        result += 'If this failed instantly, then the video cannot be downloaded. Otherwise, your command duration extended < 1 second passed the end of the video.'
     create_new_command_process = None
     downloading.remove(command)
     asyncio.create_task(check_send_message(message, result))
