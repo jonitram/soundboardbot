@@ -276,11 +276,12 @@ async def send_list_audio_commands(message):
     return
 
 def list_audio_commands():
-    result = 'Here is a list of audio commands: '
+    result = 'Here is a list of all audio commands: '
     if len(audio_commands) > 0:
         for command in audio_commands:
             result += command + ', '
-        result += ' and random.'
+        result += ' and random.\n'
+        result += 'The \"random\" audio command will randomly play an existing audio command.'
     else:
         result += 'There are no audio commands yet!'
     return result
