@@ -388,7 +388,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
                         result = 'That command is currently downloading. Please label your command something else.'
                     elif len(audio_commands) > audio_command_limit:
                         result = 'There are already ' + str(audio_command_limit) + ' audio commands! Please remove an audio command before adding a new one.'
-                    elif float() <= 0:
+                    elif float(duration) <= 0:
                         result = 'Duration must be greater than 0!'
                     elif float(duration) > duration_limit:
                         result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
