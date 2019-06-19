@@ -11,7 +11,6 @@ import sys
 # TODO:
 # maybe change finished from a list to a value/queue
 # FINISH COPY - using message -> save('filename') in discord docs
-# ADD PRECONDITION CHECK FOR DURATION (0:0 VS JUST A NUMBER OF SECONDS)
 
 # multiprocessing manager for sharing information across child processes
 mpmanager = multiprocessing.Manager()
@@ -353,36 +352,51 @@ def check_create_preconditions(url, command_name, start_time, duration):
     except ValueError:
         result = 'Please enter a YouTube URL for the \"create\" command.'
     else:
-        min_and_seconds = start_time.split(':')
-        if len(min_and_seconds) != 2:
-            result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
-            return result
-        start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-        video
-        if command_name in commands:
-            result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
-        elif video.length > video_length_limit:
-            result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
-        elif command_name in downloading:
-            result = 'That command is currently downloading. Please label your command something else.'
-        elif len(commands) > command_limit:
-            result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
-        elif float(duration) <= 0:
-            result = 'Duration must be greater than 0!'
-        elif float(duration) > duration_limit:
-            result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
-        elif start_time_seconds < 0:
-            result = 'The starting time must be greater than 0:00!'
-        elif start_time_seconds >= video.length:
-            result = 'The starting time must be within the video\'s length!'
-        # add 1 because pafy only returns seconds rounded down
-        elif start_time_seconds + float(duration) > (1 + video.length):
-            result = 'You cannot have the duration extend passed the end of the video!'
-        elif len(downloading) >= downloading_limit:
-            result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
+        try:
+            float(duration)
+        except ValueError:
+            result = 'That is not the correct \"Duration\" formatting!'
         else:
-            # create command is good to go, just going to update the creator on video length duration
-            result = 'The currently downloading video is this long: ' + str(video.duration) + '.'
+            min_and_seconds = start_time.split(':')
+            if len(min_and_seconds) != 2:
+                result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
+                return result
+            try:
+                float(min_and_seconds[0])
+            except ValueError:
+                result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
+            else:
+                try:
+                    float(min_and_seconds[1])
+                except ValueError:
+                    result = 'That is not the correct starting time format! Please use <Minutes>:<Seconds>!'
+                else:
+                    start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
+                    video
+                    if command_name in commands:
+                        result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
+                    elif video.length > video_length_limit:
+                        result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
+                    elif command_name in downloading:
+                        result = 'That command is currently downloading. Please label your command something else.'
+                    elif len(commands) > command_limit:
+                        result = 'There are already ' + str(command_limit) + ' commands! Please remove a command before adding a new one.'
+                    elif float() <= 0:
+                        result = 'Duration must be greater than 0!'
+                    elif float(duration) > duration_limit:
+                        result = 'Duration is far too long! Nobody wants to listen to your command drone on forever.'
+                    elif start_time_seconds <= 0:
+                        result = 'The starting time must be greater than 0:00! (You can use decimals to get around this i.e. 0:00.1)'
+                    elif start_time_seconds >= video.length:
+                        result = 'The starting time must be within the video\'s length!'
+                    # add 1 because pafy only returns seconds rounded down for precondition comparison, this is for any milliseconds pafy wouldn't account for
+                    elif start_time_seconds + float(duration) > (1 + video.length):
+                        result = 'You cannot have the duration extend passed the end of the video!'
+                    elif len(downloading) >= downloading_limit:
+                        result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
+                    else:
+                        # create command is good to go, just going to update the creator on video length duration
+                        result = 'The currently downloading video is this long: ' + str(video.duration) + '.'
     return result
 
 async def create_command(message, url, command_name, start_time, duration):
@@ -411,7 +425,7 @@ async def finished_command(message):
     if command in audio_commands:
         result = 'This command has finished being created: '
     else:
-        result = message.author.mention + ' Something went wrong when creating this command (if this failed instantly, then the video cannot be downloaded, otherwise your command extended < 1 second passed the duration of the video): '
+        result = message.author.mention + ' Something went wrong when creating this command (if this failed instantly, then the video cannot be downloaded. Otherwise your command duration extended < 1 second passed the end of the video): '
     result += command
     create_new_command_process = None
     downloading.remove(command)
