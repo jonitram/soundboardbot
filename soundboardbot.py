@@ -170,15 +170,7 @@ async def filter_message(message):
         else:
             asyncio.create_task(retrim_command(message, parameters[1], parameters[2]))
             return
-    elif command == creating:
-        filename = creating + file_suffix
-        if filename in os.listdir(os.getcwd()):
-            audio_task = asyncio.create_task(execute_audio_command(message))
-            return
-        else:
-            error_message = message.author.mention + ' This audio command cannot be tested right now: ' + creating
-            asyncio.create_task(check_send_message(message, error_message))
-    elif command not in commands:
+    elif command not in commands and command != creating:
         error_message = message.author.mention + ' That is not a valid command!'
         asyncio.create_task(check_send_message(message, error_message))
         return
@@ -188,7 +180,20 @@ async def filter_message(message):
         return
     else:
         if audio_task == None:
-            audio_task = asyncio.create_task(execute_audio_command(message))  
+            if command == creating:
+                filename = creating + file_suffix
+                if filename in os.listdir(os.getcwd()):
+                    update = message.author.mention + ' This audio command has not been saved yet. Please use the \"done\" command when you are satisfied with it to save this audio command.'
+                    asyncio.create_task(check_send_message(message, update))
+                    audio_task = asyncio.create_task(execute_audio_command(message))
+                    return
+                else:
+                    error_message = message.author.mention + ' This audio command cannot be tested right now: ' + creating
+                    asyncio.create_task(check_send_message(message, error_message))
+                    return
+            else:
+                audio_task = asyncio.create_task(execute_audio_command(message))
+                return
         else:
             error_message = message.author.mention + ' An audio command is currently playing. Please wait for it to finish or use the \"stop\" command before playing a new one.'
             asyncio.create_task(check_send_message(message, error_message))
@@ -289,6 +294,8 @@ def list_creating():
 
 async def send_list_audio_commands(message):
     list_audio_message = message.author.mention + ' ' + list_audio_commands()
+    if creating != None:
+        list_audio_message += '\n' + list_creating()
     asyncio.create_task(check_send_message(message, list_audio_message))
     return
 
@@ -506,9 +513,11 @@ def create_new_command(url, command_name, start_time, duration):
     download_video_process.join()
     min_and_seconds = start_time.split(':')
     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-    trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video_formatting, command_name, start_time_seconds, duration), daemon=True)
-    trim_and_create_process.start()
-    trim_and_create_process.join()
+    filename = command_name + file_suffix
+    if filename in os.listdir(os.getcwd()):
+        trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video_formatting, command_name, start_time_seconds, duration), daemon=True)
+        trim_and_create_process.start()
+        trim_and_create_process.join()
     finished.append(command_name)
     return
 
