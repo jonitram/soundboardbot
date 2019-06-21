@@ -513,7 +513,7 @@ def create_new_command(url, command_name, start_time, duration):
     download_video_process.join()
     min_and_seconds = start_time.split(':')
     start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-    filename = command_name + file_suffix
+    filename = command_name + '.' + video_formatting
     if filename in os.listdir(os.getcwd()):
         trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video_formatting, command_name, start_time_seconds, duration), daemon=True)
         trim_and_create_process.start()
