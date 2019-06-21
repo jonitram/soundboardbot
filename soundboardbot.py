@@ -42,7 +42,7 @@ video_formatting = 'm4a'
 # audio commands
 audio_commands = []
 # other commands sorted in alphabetical order
-other_commands = ['cancel','cleanup','clear','create','creating','done','help','list','stop','random','remove','restart','retrim']
+other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','restart','retrim','save']
 # all commands
 commands = []
 
@@ -165,8 +165,8 @@ async def filter_message(message):
     elif command == 'restart':
         await restart_command(message)
         return
-    elif command == 'done':
-        asyncio.create_task(done_command(message))
+    elif command == 'save':
+        asyncio.create_task(save_command(message))
         return
     elif command == 'retrim':
         if len(parameters) != 3:
@@ -189,7 +189,7 @@ async def filter_message(message):
             if command == creating:
                 filename = creating + file_suffix
                 if filename in os.listdir(os.getcwd()):
-                    update = message.author.mention + ' This audio command has not been saved yet. Please use the \"done\" command when you are satisfied with it to save this audio command.'
+                    update = message.author.mention + ' This audio command has not been saved yet. Please use the \"save\" command when you are satisfied with it to save this audio command.'
                     asyncio.create_task(check_send_message(message, update))
                     audio_task = asyncio.create_task(execute_audio_command(message))
                     return
@@ -359,7 +359,7 @@ async def send_help(message):
     help_message += 'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.\n'
     help_message += 'You will get a chance to test your command before saving it.\n'
     help_message += '- \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved.\n'
-    help_message += '- \"done\" : Completes the \"create\" command process and saves your command.\n'
+    help_message += '- \"save\" : Completes the \"create\" command process and saves your command.\n'
     help_message += '- \"creating\" : Lists the audio command currently being created.\n'
     help_message += '- \"cancel\" : Cancels the currently audio comamnd currently being created.\n'
     # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by a space and \" <CommandName>\" along with uploading a single sound file attached to the message.'
@@ -454,7 +454,7 @@ def check_duration_formatting(duration):
     else:
         return True
 
-async def done_command(message):
+async def save_command(message):
     global creating, create_new_command_process
     if create_new_command_process != None:
         result = message.author.mention + ' An audio command is currently being edited. Please wait for editing to finish before saving a command.'
@@ -497,7 +497,7 @@ async def finished_command(message):
     if filename in os.listdir(os.getcwd()):
         result = 'This audio command has finished downloading: ' + command + '\n'
         result += 'You can now test the audio command. If you would like to retrim the audio, use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command.'
-        result += 'If you are satisfied with the audio command, use the \"done\" command to complete creating the command.'
+        result += 'If you are satisfied with the audio command, use the \"save\" command to complete creating the command.'
     else:
         result = message.author.mention + ' Something went wrong when creating this command: '
         result += command + '\n'
