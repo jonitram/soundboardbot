@@ -101,6 +101,40 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
+    # coobaloops island feature
+#     channel = client.get_channel(158030424348688385)
+#     coobaloops = channel.guild.get_member_named('GnarlyHarley#2793')
+#     coobaloops_kick = 'This is a vote to kick the user ' + coobaloops.mention + ' from the SFC server (off the island).\n'
+#     coobaloops_kick += 'React with the 🚫 emoji to vote yes.\n'
+#     coobaloops_kick += 'React with the ☑ emoji to vote no.\n'
+#     coobaloops_kick += 'This vote requires at least a 3 vote lead in favor of either or to succeed or fail.'
+#     await channel.send(coobaloops_kick)
+
+
+# yes_count = 0
+# no_count = 0
+# @client.event
+# async def on_reaction_add(reaction,user):
+#     global yes_count, no_count
+#     if reaction.message.guild.get_member_named('GnarlyHarley#2793') != None:
+#         coobaloops = reaction.message.guild.get_member_named('GnarlyHarley#2793')
+#         coobaloops_kick = 'This is a vote to kick the user ' + coobaloops.mention + ' from the SFC server (off the island).\n'
+#         coobaloops_kick += 'React with the 🚫 emoji to vote yes.\n'
+#         coobaloops_kick += 'React with the ☑ emoji to vote no.\n'
+#         coobaloops_kick += 'This vote requires at least a 3 vote lead in favor of either or to succeed or fail.'
+#         if reaction.message.content == coobaloops_kick:
+#             if str(reaction.emoji) == '🚫':
+#                 no_count = reaction.count
+#             if str(reaction.emoji) == '☑':
+#                 yes_count = reaction.count
+#             if yes_count >= no_count + 3:
+#                 await reaction.message.guild.kick(user=coobaloops,reason='Voted off the island.')
+#                 kicked_message = coobaloops.mention + ' has been voted off the island. Goodbye.'
+#                 await check_send_message(reaction.message,kicked_message)
+#             elif no_count >= yes_count + 3:
+#                 survived_message = coobaloops.mention + ' has survived to live on the island another day.'
+#                 await check_send_message(reaction.message,survived_message)
+# end coobaloops island feature
 
 @client.event
 async def on_message(message):
