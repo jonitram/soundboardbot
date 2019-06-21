@@ -12,12 +12,6 @@ import sys
 # maybe change finished from a list to a value/queue
 # FINISH COPY - using message -> save('filename') in discord docs
 
-# ON FINISHED TRIMMING AUDIO COMMAND + U CAN TEST IT NOW - SAY WHICH AUDIO COMMAND IT WAS
-# MAKE SURE CAN'T RETRIM / DONE WHILE THE VIDEO IS DOWNLOADING
-# RUN RETRIM IN BACKGROUND MULTIPROCESS ->
-# SET CREATE_TASK_PROCESS TO RETRIM FOR CANCEL
-# COPY LOGIC BEHIND CREATE USING FINISHED AS INTERMEDIARY COMMUNICATION
-
 # multiprocessing manager for sharing information across child processes
 mpmanager = multiprocessing.Manager()
 
@@ -479,8 +473,8 @@ async def create_command(message, url, command_name, start_time, duration):
         error_message = message.author.mention + ' ' + create_preconditions
         asyncio.create_task(check_send_message(message, error_message))
         return
-    creating = command_name
     create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
+    creating = command_name
     create_new_command_process.start()
     update = message.author.mention + ' Beginning to create the \"' + command_name + '\" audio command!'
     asyncio.create_task(check_send_message(message, update))
