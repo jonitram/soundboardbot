@@ -454,6 +454,24 @@ def check_duration_formatting(duration):
     else:
         return True
 
+async def done_command(message):
+    global creating, create_new_command_process
+    if create_new_command_process != None:
+        result = message.author.mention + ' An audio command is currently being edited. Please wait for editing to finish before saving a command.'
+    elif creating != None:
+        result = message.author.mention + ' A new audio command can now be created.'
+        result += 'This command has been saved: ' + creating
+        current_file_name = creating + file_suffix
+        command_file_name = file_prefix + creating + file_suffix
+        os.rename(src=current_file_name,dst=command_file_name)
+        setup_commands()
+        multiprocessing.Process(target=cleanup_files).start()
+        creating = None
+    else:
+        result = message.author.mention + ' Nothing is being created at this time.'
+    asyncio.create_task(check_send_message(message, result))
+    return
+
 async def create_command(message, url, command_name, start_time, duration):
     global creating, create_new_command_process
     create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
@@ -470,29 +488,11 @@ async def create_command(message, url, command_name, start_time, duration):
     asyncio.create_task(finished_command(message))
     return
 
-async def done_command(message):
-    global creating, create_new_command_process
-    if creating != None:
-        result = message.author.mention + ' A new audio command can now be created.'
-        result += 'This command has been saved: ' + creating
-        current_file_name = creating + file_suffix
-        command_file_name = file_prefix + creating + file_suffix
-        os.rename(src=current_file_name,dst=command_file_name)
-        setup_commands()
-        multiprocessing.Process(target=cleanup_files).start()
-        create_new_command_process = None
-        creating = None
-    else:
-        result = message.author.mention + ' Nothing is being created at this time.'
-    asyncio.create_task(check_send_message(message, result))
-    return
-
 async def finished_command(message):
     global finished, creating, create_new_command_process
     while len(finished) == 0:
         await asyncio.sleep(1)
     command = finished[0]
-    finished.remove(command)
     filename = creating + file_suffix
     if filename in os.listdir(os.getcwd()):
         result = 'This audio command has finished downloading: ' + command + '\n'
@@ -508,6 +508,8 @@ async def finished_command(message):
             result += 'The video cannot be downloaded.'
             multiprocessing.Process(target=cleanup_files).start()
             creating = None
+    finished.remove(command)
+    create_new_command_process = None
     asyncio.create_task(check_send_message(message, result))
     return
 
@@ -540,6 +542,8 @@ def retrim_command_preconditions(start_time, duration):
     result = None
     if creating == None:
         result = 'Nothing is being created at this time.'
+    elif create_new_command_process != None:
+        result = 'An audio command is currently being edited. Please wait for editing to finish before retrimming.'
     elif not check_duration_formatting(duration):
             result = 'That is not the correct \"Duration\" formatting!'
     else:
@@ -558,20 +562,44 @@ def retrim_command_preconditions(start_time, duration):
     return result
 
 async def retrim_command(message, start_time, duration):
-    update = message.author.mention + ' '
+    global create_new_command_process
     error = retrim_command_preconditions(start_time, duration)
     if error == None:
-        min_and_seconds = start_time.split(':')
-        start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
-        trim_and_create(video_formatting, creating, start_time_seconds, duration)
-        filename = creating + file_suffix
-        if filename in os.listdir(os.getcwd()):
-            update += 'This audio command has finished retrimming: ' + creating
-        else:
-            update += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+        create_new_command_process = multiprocessing.Process(target=retrimming, args=(video_formatting, creating, start_time, duration))
+        create_new_command_process.start()
+        update = message.author.mention + ' Retrimming this audio command: ' + creating
+        asyncio.create_task(check_send_message(message, update))
+        asyncio.create_task(finished_retrim(message))
     else:
-        update += error
-    asyncio.create_task(check_send_message(message, update))
+        update = message.author.mention + ' ' + error
+        asyncio.create_task(check_send_message(message, update))
+    return
+
+def retrimming(video_formatting, command_name, start_time, duration):
+    global finished
+    min_and_seconds = start_time.split(':')
+    start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
+    trim_and_create_process = multiprocessing.Process(target=trim_and_create, args=(video_formatting, command_name, start_time_seconds, duration), daemon=True)
+    trim_and_create_process.start()
+    trim_and_create_process.join()
+    finished.append(command_name)
+    return
+
+async def finished_retrim(message):
+    global finished, creating, create_new_command_process
+    while len(finished) == 0:
+        await asyncio.sleep(1)
+    command = finished[0]
+    filename = creating + file_suffix
+    if filename in os.listdir(os.getcwd()):
+        result = 'This audio command has finished retrimming: ' + command + '\n'
+    else:
+        result = message.author.mention + ' Something went wrong when retrimming this command: '
+        result += command + '\n'
+        result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+    finished.remove(command)
+    create_new_command_process = None
+    asyncio.create_task(check_send_message(message, result))
     return
 
 def trim_and_create(video_formatting, command_name, start_time_seconds, duration_seconds):
@@ -580,6 +608,8 @@ def trim_and_create(video_formatting, command_name, start_time_seconds, duration
         os.remove(file_name)
     formatting = file_suffix[1:]
     video_file = command_name + '.' + video_formatting
+    if video_file not in os.listdir(os.getcwd()):
+        return
     video_audio = AudioSegment.from_file(video_file,video_formatting)
     audio_length = video_audio.duration_seconds
     start_time_ms = (audio_length - start_time_seconds) * -1000
@@ -600,7 +630,7 @@ async def check_send_message(message, message_content):
 async def cancel_creation(message):
     global create_new_command_process, finished, creating
     if creating != None:
-        if create_new_command_process.is_alive():
+        if create_new_command_process != None and create_new_command_process.is_alive():
             create_new_command_process.kill()
         create_new_command_process = None
         if creating in finished:
