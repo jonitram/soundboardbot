@@ -285,7 +285,7 @@ async def send_creating(message):
     return
 
 def list_creating():
-    result = 'Here is a list of all currently audio commands currently being created: '
+    result = 'Here is a list of all audio commands currently being created: '
     if creating != None:
         result += creating
     else:
