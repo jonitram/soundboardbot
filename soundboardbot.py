@@ -300,7 +300,7 @@ async def send_list_audio_commands(message):
     return
 
 def list_audio_commands():
-    result = 'Here is a list of all audio commands: '
+    result = 'Here is a list of all ' + str(len(audio_commands)) + ' audio commands: '
     if len(audio_commands) > 0:
         for command in audio_commands:
             result += command + ', '
