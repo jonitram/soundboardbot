@@ -105,8 +105,8 @@ async def on_ready():
     channel = client.get_channel(158030424348688385)
     coobaloops = channel.guild.get_member_named('GnarlyHarley#2793')
     coobaloops_kick = 'This is a vote to kick the user ' + coobaloops.mention + ' from the SFC server (off the island).\n'
-    coobaloops_kick += 'React with the 🚫 emoji to vote yes.\n'
-    coobaloops_kick += 'React with the ☑ emoji to vote no.\n'
+    coobaloops_kick += 'React with the ☑ emoji to vote yes.\n'
+    coobaloops_kick += 'React with the 🚫 emoji to vote no.\n'
     coobaloops_kick += 'This vote requires at least a 3 vote lead in favor of either or to succeed or fail.'
     await channel.send(coobaloops_kick)
 
