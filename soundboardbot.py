@@ -123,9 +123,9 @@ async def on_ready():
 #         coobaloops_kick += 'React with the ☑ emoji to vote no.\n'
 #         coobaloops_kick += 'This vote requires at least a 3 vote lead in favor of either or to succeed or fail.'
 #         if reaction.message.content == coobaloops_kick:
-#             if str(reaction.emoji) == '🚫':
-#                 no_count = reaction.count
 #             if str(reaction.emoji) == '☑':
+#                 no_count = reaction.count
+#             if str(reaction.emoji) == '🚫':
 #                 yes_count = reaction.count
 #             if yes_count >= no_count + 3:
 #                 await reaction.message.guild.kick(user=coobaloops,reason='Voted off the island.')
