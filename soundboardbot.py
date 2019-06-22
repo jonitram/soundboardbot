@@ -119,8 +119,8 @@ async def on_reaction_add(reaction,user):
     if reaction.message.guild.get_member_named('GnarlyHarley#2793') != None:
         coobaloops = reaction.message.guild.get_member_named('GnarlyHarley#2793')
         coobaloops_kick = 'This is a vote to kick the user ' + coobaloops.mention + ' from the SFC server (off the island).\n'
-        coobaloops_kick += 'React with the 🚫 emoji to vote yes.\n'
-        coobaloops_kick += 'React with the ☑ emoji to vote no.\n'
+        coobaloops_kick += 'React with the ☑ emoji to vote yes.\n'
+        coobaloops_kick += 'React with the 🚫 emoji to vote no.\n'
         coobaloops_kick += 'This vote requires at least a 3 vote lead in favor of either or to succeed or fail.'
         if reaction.message.content == coobaloops_kick:
             if str(reaction.emoji) == '🚫':
