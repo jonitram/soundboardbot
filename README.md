@@ -2,7 +2,7 @@
   
 1. Clone git repository through this command (requires git):  
     --- 
-    $ git clone https://github.com/jonitram/soundboardbot.git  
+    `$ git clone https://github.com/jonitram/soundboardbot.git`  
     --- 
     If you do not have git installed, it can be installed via these commands depending on your operating system:  
   
