@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import discord
 import asyncio
+import discord
 import pafy
 from pydub import AudioSegment
 import multiprocessing
@@ -503,18 +503,25 @@ async def save_command(message):
 
 async def create_command(message, url, command_name, start_time, duration):
     global creating, create_new_command_process
-    create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
-    if not create_preconditions.startswith("The currently downloading video is this long:"):
-        error_message = message.author.mention + ' ' + create_preconditions
+    try:
+        create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
+    except OSError:
+        error_message = message.author.mention + ' This command cannot be created due to the use of an age restricted video: ' + command_name
         asyncio.create_task(check_send_message(message, error_message))
         return
-    create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
-    creating = command_name
-    create_new_command_process.start()
-    update = message.author.mention + ' Beginning to create the \"' + command_name + '\" audio command!'
-    asyncio.create_task(check_send_message(message, update))
-    asyncio.create_task(check_send_message(message, create_preconditions))
-    asyncio.create_task(finished_command(message))
+    else:
+        create_preconditions = check_create_preconditions(url, command_name, start_time, duration)
+        if not create_preconditions.startswith("The currently downloading video is this long:"):
+            error_message = message.author.mention + ' ' + create_preconditions
+            asyncio.create_task(check_send_message(message, error_message))
+            return
+        create_new_command_process = multiprocessing.Process(target=create_new_command, args=(url, command_name, start_time, duration))
+        creating = command_name
+        create_new_command_process.start()
+        update = message.author.mention + ' Beginning to create the \"' + command_name + '\" audio command!'
+        asyncio.create_task(check_send_message(message, update))
+        asyncio.create_task(check_send_message(message, create_preconditions))
+        asyncio.create_task(finished_command(message))
     return
 
 async def finished_command(message):
