@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 import discord
-import youtube_dl
 import pafy
 from pydub import AudioSegment
 import multiprocessing
