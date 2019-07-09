@@ -54,8 +54,8 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     fi
 fi
 python3.7 -m pip install -r requirements.txt
-tokensexist=$PWD/tokens.txt
-if [ -f "$tokensexist" ]; then
+tokenslocation=$PWD/tokens.txt
+if [ -f "$tokenslocation" ]; then
     read -p $'Would you like to delete the old \'tokens.txt\' file and make a new one? [y/n] ' resettokens
     if [ $resettokens = 'y' ]; then
         rm tokens.txt
