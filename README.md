@@ -12,7 +12,7 @@ The purpose of this bot is to allow users in a discord server to clip audio from
  
 2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube api token at these locations: 
  
-    Discord Developer: https://discordapp.com/developers 
+    Discord Developer: https://discordapp.com/developers  
     Google Developer: https://console.developers.google.com 
  
 3. To install all of the bot's dependencies, run this command and follow the prompts for your api tokens: 
