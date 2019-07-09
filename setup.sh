@@ -42,7 +42,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
         tar -xf Python-3.7.3.tar.xz
         cd Python-3.7.3
         ./configure --enable-optimizations
-        make
+        make -j$(nproc)
         sudo make altinstall
         echo "removing python3.7 installation files"
         cd ..
