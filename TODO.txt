@@ -1,1 +1,0 @@
-UPDATE README - everything is automated for setup now
