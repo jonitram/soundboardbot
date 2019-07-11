@@ -25,7 +25,7 @@ The purpose of this bot is to allow users in a discord server to clip audio from
  
     `$ python3.7 soundboardbot.py` 
  
-2. To issue commands to the bot in discord, use the prefix ".sbb" followed by a space and the command. For example, this command will display usage of each of the bot's commands: 
+2. To issue commands to the bot in discord, use the message prefix ".sbb" followed by a space and the command. For example, this message will display usage of each of the bot's commands: 
  
     `.sbb help` 
 
