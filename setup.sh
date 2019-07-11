@@ -55,20 +55,21 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 fi
 python3.7 -m pip install -r requirements.txt
 tokenslocation=$PWD/tokens.txt
+buildtokens="n"
 if [ -f "$tokenslocation" ]; then
     read -p $'Would you like to delete the old \'tokens.txt\' file and make a new one? [y/n] ' resettokens
-    if [ $resettokens = 'y' ]; then
+    if [ $resettokens == "y" ]; then
         rm tokens.txt
-        touch tokens.txt
-        read -sp $'Please input your discord token:' d_token
-        echo $d_token >> tokens.txt
-        read -sp $'\nPlease input your youtube token:' y_token
-        echo $y_token >> tokens.txt
+        buildtokens="y"
     fi
 else
+    buildtokens="y"
+fi
+if [ $buildtokens == "y" ]; then
     touch tokens.txt
     read -sp $'Please input your discord token:' d_token
     echo $d_token >> tokens.txt
     read -sp $'\nPlease input your youtube token:' y_token
     echo $y_token >> tokens.txt
 fi
+
