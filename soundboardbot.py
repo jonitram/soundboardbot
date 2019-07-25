@@ -531,7 +531,7 @@ async def finished_command(message):
     command = finished[0]
     filename = creating + file_suffix
     if filename in os.listdir(os.getcwd()):
-        result = 'This audio command has finished downloading: ' + command + '\n'
+        result = message.author.mention + ' This audio command has finished downloading: ' + command + '\n'
         result += 'You can now test the audio command. If you would like to retrim the audio, use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command.'
         result += 'If you are satisfied with the audio command, use the \"save\" command to complete creating the command.'
     else:
