@@ -35,6 +35,21 @@ audio_commands = []
 # other commands sorted in alphabetical order
 other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','restart','retrim','save']
 command_emojis = ['🇦','🇧','🇨','🇩','🇪','🇫','🇬','🇭','🇮','🇯','🇰','🇱','🇲']
+command_explanations = [' \"cancel\" : Cancels the audio command currently being created.',
+                        ' \"cleanup\" : Toggles automatically deleting commands issued to the bot.',
+                        ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
+                        ' \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName> from <YouTubeURL> starting at <StartTime> through <Duration>.\n'\
+                            'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.'\
+                            ' You will get a chance to test your command and retrim it if you would like to before saving it.',
+                        ' \"creating\" : Displays the audio command currently being created.',
+                        ' \"help\" : Sends the help message.',
+                        ' \"list\" : Lists all available audio commands.',
+                        ' \"stop\" : Stops a currently playing audio command.',
+                        ' \"random\" : Randomly selects an audio command and executes it (will only work in an audio channel).',
+                        ' \"remove <CommandName>\" : Removes the <CommandName> audio command.',
+                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, and restarts the bot.',
+                        ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
+                        ' \"save\" : Completes the \"create\" command process and saves your command.']
 # all commands
 commands = []
 # standardized help message
@@ -139,6 +154,16 @@ async def on_reaction_add(reaction,user):
             elif no_count >= yes_count + 3:
                 survived_message = coobaloops.mention + ' has survived to live on the island another day.'
                 await check_send_message(reaction.message,survived_message)
+    if reaction.message.content.endswith(help_message) and user.id != client.user.id and reaction.emoji in command_emojis:
+        result = user.mention + command_explanations[command_emojis.index(reaction.emoji)]
+        if reaction.emoji == command_emojis[1]:
+            result += ' Currently: '
+            if cleanup:
+                result += 'Enabled'
+            else:
+                result += 'Disabled'
+        asyncio.create_task(check_send_message(reaction.message, result))
+    return
 # end coobaloops island feature
 
 @client.event
@@ -406,35 +431,6 @@ def build_help_message():
     for i in range(len(other_commands)):
         help_message += '| ' + other_commands[i] + ' : ' + command_emojis[i] + ' '
     help_message += '|'
-    return
-
-command_explanations = [' \"cancel\" : Cancels the audio command currently being created.',
-                        ' \"cleanup\" : Toggles automatically deleting commands issued to the bot.',
-                        ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
-                        ' \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName> from <YouTubeURL> starting at <StartTime> through <Duration>.\n'\
-                            'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.'\
-                            ' You will get a chance to test your command and retrim it if you would like to before saving it.',
-                        ' \"creating\" : Displays the audio command currently being created.',
-                        ' \"help\" : Sends the help message.',
-                        ' \"list\" : Lists all available audio commands.',
-                        ' \"stop\" : Stops a currently playing audio command.',
-                        ' \"random\" : Randomly selects an audio command and executes it (will only work in an audio channel).',
-                        ' \"remove <CommandName>\" : Removes the <CommandName> audio command.',
-                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, and restarts the bot.',
-                        ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
-                        ' \"save\" : Completes the \"create\" command process and saves your command.']
-
-@client.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.content.endswith(help_message) and user.id != client.user.id and reaction.emoji in command_emojis:
-        result = user.mention + command_explanations[command_emojis.index(reaction.emoji)]
-        if reaction.emoji == command_emojis[1]:
-            result += ' Currently: '
-            if cleanup:
-                result += 'Enabled'
-            else:
-                result += 'Disabled'
-        asyncio.create_task(check_send_message(reaction.message, result))
     return
 
 async def send_help(message):
