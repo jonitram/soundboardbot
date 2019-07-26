@@ -20,7 +20,7 @@ discord_token=None
 youtube_token=None
 
 # the discord client
-help_activity = discord.Activity(name="\'.sbb\' to use the bot | \'.sbb help\' for help",type=discord.ActivityType.playing)
+help_activity = discord.Activity(name="\'.sbb <command>\' to call the bot | \'.sbb help\' for help",type=discord.ActivityType.playing)
 client = discord.Client(activity=help_activity)
 
 # the text file that the tokens are stored in
