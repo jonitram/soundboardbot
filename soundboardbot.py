@@ -20,7 +20,8 @@ discord_token=None
 youtube_token=None
 
 # the discord client
-client = discord.Client()
+help_activity = discord.Activity(name="\".sbb\" to use the bot",type=discord.ActivityType.playing,state="\".sbb help\" for help")
+client = discord.Client(activity=help_activity)
 
 # the text file that the tokens are stored in
 tokensfile = "tokens.txt"
@@ -110,6 +111,10 @@ async def on_message(message):
         if cleanup:
             asyncio.create_task(delete_message(message))
     return  
+
+@client.event
+async def on_reaction_add(reaction, user):
+    return
 
 async def filter_message(message):
     global audio_task, audio_player
