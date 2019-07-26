@@ -34,11 +34,14 @@ video_formatting = 'm4a'
 audio_commands = []
 # other commands sorted in alphabetical order
 other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','restart','retrim','save']
+command_emojis = ['🇦','🇧','🇨','🇩','🇪','🇫','🇬','🇭','🇮','🇯','🇰','🇱','🇲']
 # all commands
 commands = []
+# standardized help message
+help_message = None
 
 # the discord client
-help_activity = discord.Activity(name="\'" + command_prefix + " <command>\' to call the bot | \'" + command_prefix + " help\' for help",type=discord.ActivityType.playing)
+help_activity = discord.Activity(name='\"' + command_prefix + ' <command>\" to call the bot | \"' + command_prefix + ' help\" for help',type=discord.ActivityType.playing)
 client = discord.Client(activity=help_activity)
 
 # cleaning up bot messages is set to off by default
@@ -110,11 +113,15 @@ async def on_message(message):
         asyncio.create_task(filter_message(message))
         if cleanup:
             asyncio.create_task(delete_message(message))
-    return  
-
-@client.event
-async def on_reaction_add(reaction, user):
+    elif message.content.endswith(help_message) and message.author.id == client.user.id:
+        for i in range(len(other_commands)):
+            asyncio.create_task(message.add_reaction(command_emojis[i]))
     return
+
+def get_emoji(name):
+    for emoji in client.emojis:
+        if emoji.name == name:
+            return emoji
 
 async def filter_message(message):
     global audio_task, audio_player
@@ -273,7 +280,7 @@ async def remove_command(message, audio_command):
     elif remove_audio_file(audio_command):
         update = message.author.mention + ' The \"' + audio_command + '\" audio command has been removed.'
     else:
-        update = message.author.mention + ' The requested audio command\'s file could not be found! The ' + audio_command + ' audio command has been removed.'
+        update = message.author.mention + ' The requested audio command\"s file could not be found! The ' + audio_command + ' audio command has been removed.'
     setup_commands()
     asyncio.create_task(check_send_message(message, update))
     return
@@ -350,34 +357,55 @@ def get_sound(command):
         result = None
     return result
 
+def build_help_message():
+    global help_message
+    help_message = ' Issue a command by using \"' + command_prefix + '\" followed by a space and then the command to execute it.\n'
+    help_message += 'You must be in an audio channel to use an audio command (like \"random\").\n'
+    help_message += 'Here is a list of available commands and their corresponding reactions. If you would like to know more about a command, react to this message with the desired command\'s associated reaction.\n'
+    # dynamic list approach
+    # index = 0
+    # for command in other_commands:
+    #     help_message += '| ' + command + ' : :regional_indicator_' +  chr(97 + index) + ': '
+    #     index += 1
+    # help_message += '|'
+    # hard coded list approach
+    for i in range(len(other_commands)):
+        help_message += '| ' + other_commands[i] + ' : ' + command_emojis[i] + ' '
+    help_message += '|'
+    return
+
+command_explanations = [' \"cancel\" : Cancels the audio command currently being created.',
+                        ' \"cleanup\" : Toggles automatically deleting commands issued to the bot.',
+                        ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
+                        ' \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName> from <YouTubeURL> starting at <StartTime> through <Duration>.\n'\
+                            'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.'\
+                            ' You will get a chance to test your command and retrim it if you would like to before saving it.',
+                        ' \"creating\" : Displays the audio command currently being created.',
+                        ' \"help\" : Sends the help message.',
+                        ' \"list\" : Lists all available audio commands.',
+                        ' \"stop\" : Stops a currently playing audio command.',
+                        ' \"random\" : Randomly selects an audio command and executes it (will only work in an audio channel).',
+                        ' \"remove <CommandName>\" : Removes the <CommandName> audio command.',
+                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, and restarts the bot.',
+                        ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
+                        ' \"save\" : Completes the \"create\" command process and saves your command.']
+
+@client.event
+async def on_reaction_add(reaction, user):
+    if reaction.message.content.endswith(help_message) and user.id != client.user.id and reaction.emoji in command_emojis:
+        result = user.mention + command_explanations[command_emojis.index(reaction.emoji)]
+        if reaction.emoji == command_emojis[1]:
+            result += ' Currently: '
+            if cleanup:
+                result += 'Enabled'
+            else:
+                result += 'Disabled'
+        asyncio.create_task(check_send_message(reaction.message, result))
+    return
+
 async def send_help(message):
-    help_message = message.author.mention + ' Issue a command by typing \"' + command_prefix + '\" followed by a space and then the command to execute it.\n'
-    help_message += '- ' + list_audio_commands() + '\n'
-    help_message += 'You must be in an audio channel to use an audio command.\n'
-    help_message += '- \"stop\" : Stops a currently playing audio command.\n'
-    help_message += '- \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName>.\n' 
-    help_message += 'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.\n'
-    help_message += 'You will get a chance to test your command before saving it.\n'
-    help_message += '- \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved.\n'
-    help_message += '- \"save\" : Completes the \"create\" command process and saves your command.\n'
-    help_message += '- \"creating\" : Lists the audio command currently being created.\n'
-    help_message += '- \"cancel\" : Cancels the currently audio comamnd currently being created.\n'
-    # help_message += 'Turn your own sound file into a command using the \"copy\" command followed by a space and \" <CommandName>\" along with uploading a single sound file attached to the message.'
-    # help_message += 'Uploaded sound files can be no longer than ' + duration_limit + ' seconds.\n'
-    help_message += '- \"remove <CommandName>\" : Removes the <CommandName> audio command.\n'
-    help_message += '- \"list\" : Lists all audio commands available.\n'
-    help_message += '- \"cleanup\" : Toggles automatically deleting commands issued to the bot.\n'
-    help_message += 'Currently: '
-    if cleanup:
-        help_message += 'Enabled'
-    else:
-        help_message += 'Disabled'
-    help_message += '.\n'
-    help_message += '- \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).\n'
-    help_message += '- \"restart\" : Stops all audio commands, cancels all downloads, and restarts the bot.\n'
-    help_message += 'This command will only work if the bot is still responding to messages.\n'
-    help_message += '- \"help\" : Sends this message.'
-    asyncio.create_task(check_send_message(message, help_message))
+    result = message.author.mention + help_message
+    asyncio.create_task(check_send_message(message, result))
     return
 
 async def delete_message(message):
@@ -419,7 +447,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
                 elif start_time_seconds <= 0:
                     result = 'The starting time must be greater than 0:00! (You can use decimals to get around this i.e. 0:00.1)'
                 elif start_time_seconds >= video.length:
-                    result = 'The starting time must be within the video\'s length!'
+                    result = 'The starting time must be within the video\"s length!'
                 # add 1 because pafy only returns seconds rounded down for precondition comparison, this is for any milliseconds pafy wouldn't account for
                 elif start_time_seconds + float(duration) > (1 + video.length):
                     result = 'You cannot have the duration extend passed the end of the video!'
@@ -512,7 +540,7 @@ async def finished_command(message):
         if video_file_name in os.listdir(os.getcwd()):
             result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
         else:
-            result += 'The video cannot be downloaded.'
+            result += message.author.mention + 'The video cannot be downloaded.'
             multiprocessing.Process(target=cleanup_files).start()
             creating = None
     finished.remove(command)
@@ -599,7 +627,7 @@ async def finished_retrim(message):
     command = finished[0]
     filename = creating + file_suffix
     if filename in os.listdir(os.getcwd()):
-        result = 'This audio command has finished retrimming: ' + command + '\n'
+        result = message.author.mention + 'This audio command has finished retrimming: ' + command + '\n'
     else:
         result = message.author.mention + ' Something went wrong when retrimming this command: '
         result += command + '\n'
@@ -678,6 +706,7 @@ def main():
     multiprocessing.Process(target=cleanup_files).start()
     setup_tokens(tokensfile)
     setup_commands()
+    build_help_message()
     pafy.set_api_key(youtube_token)
     client.run(discord_token)
 
