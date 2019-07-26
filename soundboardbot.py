@@ -19,10 +19,6 @@ mpmanager = multiprocessing.Manager()
 discord_token=None
 youtube_token=None
 
-# the discord client
-help_activity = discord.Activity(name="\'.sbb <command>\' to call the bot | \'.sbb help\' for help",type=discord.ActivityType.playing)
-client = discord.Client(activity=help_activity)
-
 # the text file that the tokens are stored in
 tokensfile = "tokens.txt"
 
@@ -40,6 +36,10 @@ audio_commands = []
 other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','restart','retrim','save']
 # all commands
 commands = []
+
+# the discord client
+help_activity = discord.Activity(name="\'" + command_prefix + " <command>\' to call the bot | \'" + command_prefix + " help\' for help",type=discord.ActivityType.playing)
+client = discord.Client(activity=help_activity)
 
 # cleaning up bot messages is set to off by default
 cleanup = False
