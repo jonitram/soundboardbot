@@ -119,11 +119,6 @@ async def on_message(message):
             asyncio.create_task(message.add_reaction(command_emojis[i]))
     return
 
-def get_emoji(name):
-    for emoji in client.emojis:
-        if emoji.name == name:
-            return emoji
-
 async def filter_message(message):
     global audio_task, audio_player
     if audio_task != None and audio_task.done():
