@@ -4,6 +4,7 @@ import discord
 import pafy
 from pydub import AudioSegment
 import multiprocessing
+import subprocess
 import random
 import os
 import sys
@@ -685,7 +686,10 @@ async def restart_command(message):
     if creating != None:
         await cancel_creation(message)
     await check_send_message(message, update)
-    os.execv(sys.executable, ['python3.7'] + sys.argv)
+    # restarting without the script
+    # os.execv(sys.executable, ['python3.7'] + sys.argv)
+    subprocess.Popen(["/bin/bash", "restart.sh"])
+    sys.exit(0)
     return
 
 # copy command logic
