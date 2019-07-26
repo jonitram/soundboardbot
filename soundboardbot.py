@@ -681,10 +681,9 @@ async def restart_command(message):
     if creating != None:
         await cancel_creation(message)
     await check_send_message(message, update)
-    # restarting without the script
+    # restarting without the external script
     # os.execv(sys.executable, ['python3.7'] + sys.argv)
-    subprocess.Popen(["/bin/bash", "restart.sh"])
-    sys.exit(0)
+    os.system('sh restart.sh')
     return
 
 # copy command logic
