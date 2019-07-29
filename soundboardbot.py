@@ -155,6 +155,7 @@ async def on_reaction_add(reaction,user):
             elif no_count >= yes_count + 3:
                 survived_message = coobaloops.mention + ' has survived to live on the island another day.'
                 await check_send_message(reaction.message,survived_message)
+    # end coobaloops island feature
     if reaction.message.content.endswith(help_message) and user.id != client.user.id and reaction.emoji in command_emojis:
         result = user.mention + command_explanations[command_emojis.index(reaction.emoji)]
         if reaction.emoji == command_emojis[1]:
@@ -165,7 +166,6 @@ async def on_reaction_add(reaction,user):
                 result += 'Disabled'
         asyncio.create_task(check_send_message(reaction.message, result))
     return
-# end coobaloops island feature
 
 @client.event
 async def on_message(message):
@@ -176,6 +176,10 @@ async def on_message(message):
     elif message.content.endswith(help_message) and message.author.id == client.user.id:
         for i in range(len(other_commands)):
             asyncio.create_task(message.add_reaction(command_emojis[i]))
+    # devin feature:
+    if message.author == message.guild.get_member_named('Farafaxis#1954'):
+        await delete_message(message)
+    # end devin feature
     return
 
 async def filter_message(message):
@@ -476,7 +480,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
                     result = 'The starting time must be within the video\"s length!'
                 # add 1 because pafy only returns seconds rounded down for precondition comparison, this is for any milliseconds pafy wouldn't account for
                 elif start_time_seconds + float(duration) > (1 + video.length):
-                    result = 'You cannot have the duration extend passed the end of the video!'
+                    result = 'You cannot have the duration extend past the end of the video!'
                 elif creating != None:
                     result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
                 else:
@@ -564,7 +568,7 @@ async def finished_command(message):
         result += command + '\n'
         video_file_name = command + '.' + video_formatting
         if video_file_name in os.listdir(os.getcwd()):
-            result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+            result += 'Your command duration extended < 1 second past the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
         else:
             result += message.author.mention + 'The video cannot be downloaded.'
             multiprocessing.Process(target=cleanup_files).start()
@@ -657,7 +661,7 @@ async def finished_retrim(message):
     else:
         result = message.author.mention + ' Something went wrong when retrimming this command: '
         result += command + '\n'
-        result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+        result += 'Your command duration extended < 1 second past the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
     finished.remove(command)
     create_new_command_process = None
     asyncio.create_task(check_send_message(message, result))
