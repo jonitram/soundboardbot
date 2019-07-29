@@ -48,7 +48,7 @@ command_explanations = [' \"cancel\" : Cancels the audio command currently being
                         ' \"stop\" : Stops a currently playing audio command.',
                         ' \"random\" : Randomly selects an audio command and executes it (will only work in an audio channel).',
                         ' \"remove <CommandName>\" : Removes the <CommandName> audio command.',
-                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, updates, and restarts the bot.',
+                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, restarts and updates the bot.',
                         ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
                         ' \"save\" : Completes the \"create\" command process and saves your command.']
 # all commands
@@ -709,7 +709,7 @@ async def cancel_creation(message):
     return
 
 async def restart_command(message):
-    update = message.author.mention + ' Updating and restarting the bot.'
+    update = message.author.mention + ' Restarting and updating the bot.'
     if audio_task != None:
         await stop_command(message)
     if creating != None:
