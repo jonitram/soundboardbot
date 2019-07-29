@@ -177,7 +177,7 @@ async def on_message(message):
         for i in range(len(other_commands)):
             asyncio.create_task(message.add_reaction(command_emojis[i]))
     # devin feature:
-    if message.author == message.guild.get_member_named('Farafaxis#1954'):
+    if message.author == message.guild.get_member_named('DoubleDTVxD#3214'):
         await delete_message(message)
     # end devin feature
     return
