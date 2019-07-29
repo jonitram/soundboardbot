@@ -382,7 +382,7 @@ command_explanations = [' \"cancel\" : Cancels the audio command currently being
                         ' \"stop\" : Stops a currently playing audio command.',
                         ' \"random\" : Randomly selects an audio command and executes it (will only work in an audio channel).',
                         ' \"remove <CommandName>\" : Removes the <CommandName> audio command.',
-                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, and restarts the bot.',
+                        ' \"restart\" : Stops all audio commands, cancels the command currently being created, restarts and updates the bot.',
                         ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
                         ' \"save\" : Completes the \"create\" command process and saves your command.']
 
@@ -446,7 +446,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
                     result = 'The starting time must be within the video\"s length!'
                 # add 1 because pafy only returns seconds rounded down for precondition comparison, this is for any milliseconds pafy wouldn't account for
                 elif start_time_seconds + float(duration) > (1 + video.length):
-                    result = 'You cannot have the duration extend passed the end of the video!'
+                    result = 'You cannot have the duration extend past the end of the video!'
                 elif creating != None:
                     result = 'Too many commands being created at once! Please wait for another command to finish before creating a new one!'
                 else:
@@ -534,7 +534,7 @@ async def finished_command(message):
         result += command + '\n'
         video_file_name = command + '.' + video_formatting
         if video_file_name in os.listdir(os.getcwd()):
-            result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+            result += 'Your command duration extended < 1 second past the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
         else:
             result += message.author.mention + 'The video cannot be downloaded.'
             multiprocessing.Process(target=cleanup_files).start()
@@ -627,7 +627,7 @@ async def finished_retrim(message):
     else:
         result = message.author.mention + ' Something went wrong when retrimming this command: '
         result += command + '\n'
-        result += 'Your command duration extended < 1 second passed the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
+        result += 'Your command duration extended < 1 second past the end of the video. Please use the \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" command to fix your command.'
     finished.remove(command)
     create_new_command_process = None
     asyncio.create_task(check_send_message(message, result))
@@ -675,7 +675,7 @@ async def cancel_creation(message):
     return
 
 async def restart_command(message):
-    update = message.author.mention + ' Restarting the bot.'
+    update = message.author.mention + ' Restarting and updating the bot.'
     if audio_task != None:
         await stop_command(message)
     if creating != None:
