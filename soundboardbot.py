@@ -77,7 +77,7 @@ finished = mpmanager.list()
 audio_command_limit = 100
 # reference to the background create command processes (used for cancelling downloads)
 create_new_command_process = None
-# current audio player for disconnecting through stop
+# current audio player for disconnecting through stopÚÚÚ
 audio_player = None
 # current audio task for cancelling throuhg stop
 audio_task = None
@@ -287,7 +287,7 @@ async def rename_command(message, currentname, newname):
         asyncio.create_task(check_send_message(message, error_message))
         return
     elif newname in commands:
-        error_message = message.author.mention + ' The new name you have proposed for this \"' + currentname + '\" audio command already exists!'
+        error_message = message.author.mention + ' The new name you have proposed for the \"' + currentname + '\" audio command already exists!'
         asyncio.create_task(check_send_message(message, error_message))
         return
     elif newname == creating:
@@ -299,6 +299,8 @@ async def rename_command(message, currentname, newname):
         new_file_name = file_prefix + newname + file_suffix
         os.rename(src=current_file_name,dst=new_file_name)
         setup_commands()
+        update_message = message.author.mention + ' The \"' + currentname + '\" audio command has been renamed to \"' + newname + '\".'
+        asyncio.create_task(check_send_message(message, update_message))
     return
 
 async def stop_command(message):
