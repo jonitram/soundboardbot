@@ -316,10 +316,10 @@ async def cleanup_update(message):
     global cleanup
     cleanup = not cleanup
     if cleanup:
-       cleanup_update_message = message.author.mention + ' any messages beginning with the \"' +command_prefix + '\" command prefix will now be deleted. The amount of messages cleared message will also be deleted as well.'
+       cleanup_update_message = message.author.mention + ' any messages beginning with the \"' +command_prefix + '\" command prefix will now be deleted. The amount of messages cleared will no longer be sent as well.'
        asyncio.create_task(check_send_message(message, cleanup_update_message))
     else:
-       cleanup_update_message = message.author.mention + ' Commands issued to the bot will no longer be deleted. The amount of messages cleared message will no longer be deleted as well.'
+       cleanup_update_message = message.author.mention + ' Commands issued to the bot will no longer be deleted. The amount of messages cleared will also be sent as well.'
        asyncio.create_task(check_send_message(message, cleanup_update_message))
     return
 
