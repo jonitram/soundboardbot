@@ -10,7 +10,7 @@ The purpose of this bot is to allow users in a discord server to clip audio from
  
     `$ git clone https://github.com/jonitram/soundboardbot.git` 
  
-2. You will need your own discord and youtube api tokens to use this bot, so register the bot as a discord developer and acquire a youtube api token at these locations: 
+2. You will need your own discord and youtube api tokens to host this bot, so register the bot as a discord developer and acquire a youtube api token at these locations: 
  
     Discord Developer: https://discordapp.com/developers  
     Google Developer: https://console.developers.google.com 
