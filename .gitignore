@@ -1,2 +1,16 @@
+# swap files
+*.swo
+*.swp
+
+# vscode
+.vscode
+
+# macOS folder attributes
+*.DS_Store
+
+# intellij
+*.idea
+
+# tokens file
 *.mp3
 tokens.txt
