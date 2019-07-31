@@ -11,7 +11,6 @@ import sys
 
 # TODO:
 # maybe change finished from a list to a value/queue
-# FINISH COPY - using message -> save('filename') in discord docs
 
 # multiprocessing manager for sharing information across child processes
 mpmanager = multiprocessing.Manager()
