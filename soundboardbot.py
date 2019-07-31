@@ -36,7 +36,7 @@ audio_commands = []
 # other commands sorted in alphabetical order
 other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','rename','restart','retrim','save','upload']
 command_explanations = [' \"cancel\" : Cancels the audio command currently being created.',
-                        ' \"cleanup\" : Toggles automatically deleting commands issued to the bot.',
+                        ' \"cleanup\" : Toggles automatically deleting commands issued to the bot. When this is disabled, the bot will also send the amount of messages deleted by \"clear\".',
                         ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
                         ' \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName> from <YouTubeURL> starting at <StartTime> through <Duration>.\n'\
                             'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.'\
