@@ -34,7 +34,7 @@ video_formatting = 'm4a'
 # audio commands
 audio_commands = []
 # other commands sorted in alphabetical order
-other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','rename','restart','retrim','save']
+other_commands = ['cancel','cleanup','clear','create','creating','help','list','stop','random','remove','rename','restart','retrim','save','upload']
 command_explanations = [' \"cancel\" : Cancels the audio command currently being created.',
                         ' \"cleanup\" : Toggles automatically deleting commands issued to the bot.',
                         ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
@@ -50,8 +50,9 @@ command_explanations = [' \"cancel\" : Cancels the audio command currently being
                         ' \"rename <CurrentCommandName> <NewCommandName>\" : Renames the currently existing <CurrentCommandName> to <NewCommandName>.',
                         ' \"restart\" : Stops all audio commands, cancels the command currently being created, restarts and updates the bot.',
                         ' \"retrim <StartTime(Min:Sec)> <Duration(Sec)>\" : Retrims the audio command currently being created before it is saved (will only work after downloading is complete).',
-                        ' \"save\" : Completes the \"create\" command process and saves your command.']
-command_emojis = ['🇦','🇧','🇨','🇩','🇪','🇫','🇬','🇭','🇮','🇯','🇰','🇱','🇲','🇳']
+                        ' \"save\" : Completes the \"create\" command process and saves your command.',
+                        ' \"upload <CommandName>\" : Creates a command called <CommandName> using the uploaded attachment. Exactly one attachment must be used, the file must be an \".mp3\" and the audio command being created still follows normal command limitations.']
+command_emojis = ['🇦','🇧','🇨','🇩','🇪','🇫','🇬','🇭','🇮','🇯','🇰','🇱','🇲','🇳','🇴']
 # all commands
 commands = []
 # standardized help message
@@ -216,6 +217,15 @@ async def filter_message(message):
         else:
             # lowercase both because all files are named lowercases
             asyncio.create_task(rename_command(message, parameters[1].lower(), parameters[2].lower()))
+            return
+    elif command == 'upload':
+        if len(parameters) != 2:
+            error_message = message.author.mention + ' That is not the correct \"upload\" command formatting!'
+            asyncio.create_task(check_send_message(message, error_message))
+            return
+        else:
+            # lowercase both because all files are named lowercases
+            asyncio.create_task(upload_command(message, parameters[1].lower()))
             return
     elif command == 'list':
         asyncio.create_task(send_list_audio_commands(message))
@@ -509,7 +519,7 @@ def check_create_preconditions(url, command_name, start_time, duration):
                 min_and_seconds = start_time.split(':')
                 start_time_seconds = (float(min_and_seconds[0]) * 60) + float(min_and_seconds[1])
                 if command_name in commands:
-                    result = 'That command is already defined! If it is a audio command, please delete that audio command first!'
+                    result = 'That command is already defined! If it is a audio command, please delete or rename that audio command first!'
                 elif video.length > video_length_limit:
                     result = 'That video would take too long to download, find a shorter video (' + video_length_limit + ' min or less).'
                 elif command_name == creating:
@@ -764,20 +774,58 @@ async def restart_command(message):
     # restarting without the external script
     # os.execv(sys.executable, ['python3.7'] + sys.argv)
     os.system('sh restart.sh')
+    
+    
+async def upload_command(message, commandname):
+    if commandname in commands:
+        error_message = message.author.mention + ' That command is already defined! If it is a audio command, please delete or rename that audio command first!'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    elif commandname == creating:
+        error_message = message.author.mention + ' The command you have proposed is currently being created! Please rename it.'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    elif len(message.attachments) != 1:
+        error_message = message.author.mention + ' You can only upload a command with exactly one attachment!'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    elif not message.attachments[0].filename.endswith(".mp3"):
+        error_message = message.author.mention + ' You can only create a command from an audio file!'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    elif len(audio_commands) > audio_command_limit:
+        error_message = message.author.mention + ' There are already ' + str(audio_command_limit) + ' audio commands! Please remove an audio command before adding a new one.'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    elif message.attachments[0].size > 1000000:
+        error_message = message.author.mention + ' The attached audio file is too large! Please use a shorter one.'
+        asyncio.create_task(check_send_message(message, error_message))
+        return
+    else:
+        file_name = file_prefix + commandname + file_suffix
+        try:
+            await message.attachments[0].save(file_name)
+        except discord.NotFound:
+            error_message = message.author.mention + ' The attachment was deleted.'
+            asyncio.create_task(check_send_message(message, error_message))
+            return
+        except discord.HTTPException:
+            error_message = message.author.mention + ' There was an error in saving the attachment.'
+            asyncio.create_task(check_send_message(message, error_message))
+            return
+        else:
+            file_formatting = file_suffix[1:]
+            command_audio = AudioSegment.from_file(file_name,file_formatting)
+            if command_audio.duration_seconds > duration_limit:
+                os.remove(file_name)
+                error_message = message.author.mention + ' Duration is far too long! Nobody wants to listen to your command drone on forever.'
+                asyncio.create_task(check_send_message(message, error_message))
+                return
+            else:
+                setup_commands()
+                update_message = message.author.mention + ' The \"' + commandname + '\" audio command has been created!'
+                asyncio.create_task(check_send_message(message, update_message))
     return
-
-# copy command logic
-# command_prefix copy <command_name>'
-# so len(parameters) == 2 in filter_message
-# only one attachment allowed
-# so len(message.attachments) == 1
-# check filetype for audio file
-# check for existence of command
-# check audio_command_limit
-# download audio
-# check audio duration, if >= duration_limit -> too long
-# filename = file_prefix + command_name (parameters[1]) + file_suffix
-# export file following create command
 
 # main function
 def main():
