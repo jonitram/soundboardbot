@@ -74,7 +74,7 @@ creating = None
 # list of finished downloaded commands
 finished = mpmanager.list()
 # maximum number of commands allowed (not necessary, just there to prevent too many files)
-audio_command_limit = 100
+audio_command_limit = 1000
 # reference to the background create command processes (used for cancelling downloads)
 create_new_command_process = None
 # current audio player for disconnecting through stopÚÚÚ
