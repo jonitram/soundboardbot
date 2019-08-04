@@ -140,7 +140,7 @@ async def filter_message(message):
     if audio_task != None and audio_task.done():
             audio_task = None
     command_message = message.content[5:]
-    parameters = command_message.split(' ')
+    parameters = command_message.split()
     command = parameters[0].lower()
     if command == 'create':
         if len(parameters) != 5:
