@@ -38,7 +38,7 @@ command_explanations = [' \"cancel\" : Cancels the audio command currently being
                         ' \"cleanup\" : Toggles automatically deleting commands issued to the bot. When this is disabled, the bot will also send the amount of messages deleted by \"clear\".',
                         ' \"clear\" : Deletes commands issued to the bot and messages sent by the bot (up to 500 messages back).',
                         ' \"create <YouTubeURL> <CommandName> <StartTime(Min:Sec)> <Duration(Sec)>\" : Creates an audio command called <CommandName> from <YouTubeURL> starting at <StartTime> through <Duration>.\n'\
-                            'Each parameter of the \"create\" command must be separated by exactly a single space. Only one audio command can be created at a time.'\
+                            'Each parameter of the \"create\" command must be separated by a space. Only one audio command can be created at a time.'\
                             ' You will get a chance to test your command and retrim it if you would like to before saving it.',
                         ' \"creating\" : Displays the audio command currently being created.',
                         ' \"help\" : Sends the help message.',
