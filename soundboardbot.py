@@ -475,19 +475,6 @@ def build_help_message():
     help_message += '|'
     return
 
-@client.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.content.endswith(help_message) and user.id != client.user.id and reaction.emoji in command_emojis:
-        result = user.mention + command_explanations[command_emojis.index(reaction.emoji)]
-        if reaction.emoji == command_emojis[1]:
-            result += ' Currently: '
-            if cleanup:
-                result += 'Enabled'
-            else:
-                result += 'Disabled'
-        asyncio.create_task(check_send_message(reaction.message, result))
-    return
-
 async def send_help(message):
     result = message.author.mention + help_message
     asyncio.create_task(check_send_message(message, result))
