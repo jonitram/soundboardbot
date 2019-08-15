@@ -187,7 +187,7 @@ async def filter_message(message):
     global audio_task, audio_player
     if audio_task != None and audio_task.done():
             audio_task = None
-    command_message = message.content[5:]
+    command_message = message.content[len(command_prefix)+1:]
     parameters = command_message.split()
     command = parameters[0].lower()
     if command == 'create':
