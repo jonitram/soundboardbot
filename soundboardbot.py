@@ -23,7 +23,7 @@ youtube_token=None
 tokensfile = "tokens.txt"
 
 # the message prefix required to call the bot in discord
-command_prefix = 'sbb'
+command_prefix = '.sbb'
 # the filename prefix for audio files related to the bot
 file_prefix = 'sbb_'
 # the filetype for audio files downloaded for commands
