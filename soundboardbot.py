@@ -381,7 +381,7 @@ async def execute_audio_command(message):
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
-        command = message.content[5:]
+        command = message.content[len(command_prefix)+1:]
         file = get_sound(command)
         if command == creating:
             file = creating + file_suffix
