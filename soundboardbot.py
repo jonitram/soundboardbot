@@ -122,6 +122,9 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
+    # sfc feature
+    for server in client.guilds:
+      print(server.name)
     # coobaloops island feature
     channel = client.get_channel(158030424348688385)
     coobaloops = channel.guild.get_member_named('GnarlyHarley#2793')
