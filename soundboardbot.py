@@ -124,8 +124,8 @@ async def on_ready():
     print('------')
     # sfc feature
     for server in client.guilds:
-      if server.name == "\"Nine Inches of Clearance\"":
-        print(server.id)
+      print(server.name)
+      if server.id == "158030424348688385":
         await server.leave()
     # coobaloops island feature
     channel = client.get_channel(158030424348688385)
