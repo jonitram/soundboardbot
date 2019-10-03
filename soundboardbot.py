@@ -126,6 +126,9 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    for server in client.guilds:
+        if server.id != "615983427522527235" or server.id != "182589968168779776":
+            await server.leave()
     if message.content.startswith(command_prefix):
         asyncio.create_task(filter_message(message))
         if cleanup:
