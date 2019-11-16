@@ -23,7 +23,7 @@ youtube_token=None
 tokensfile = "tokens.txt"
 
 # the message prefix required to call the bot in discord
-command_prefix = 'sbb'
+command_prefix = '.sbb'
 # the filename prefix for audio files related to the bot
 file_prefix = 'sbb_'
 # the filetype for audio files downloaded for commands
@@ -434,7 +434,7 @@ async def execute_audio_command(message):
     audio_channel = message.author.voice.channel
     me_as_member = message.channel.guild.me
     if audio_channel.permissions_for(me_as_member).speak:
-        command = message.content[len(command_prefix)+1:]
+        command = message.content[5:]
         file = get_sound(command)
         if command == creating:
             file = creating + file_suffix
